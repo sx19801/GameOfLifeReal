@@ -1,8 +1,8 @@
 package gol
 
 import (
+	"GameOfLifeReal/util"
 	"fmt"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // Event represents any Game of Life event that needs to be communicated to the user.

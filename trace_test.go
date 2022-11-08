@@ -1,11 +1,11 @@
 package main
 
 import (
+	"GameOfLifeReal/gol"
+	"GameOfLifeReal/util"
 	"os"
 	"runtime/trace"
 	"testing"
-	"uk.ac.bris.cs/gameoflife/gol"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // TestTrace is a special test to be used to generate traces - not a real test

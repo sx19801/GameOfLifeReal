@@ -1,12 +1,12 @@
 package gol
 
 import (
+	"GameOfLifeReal/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type ioChannels struct {

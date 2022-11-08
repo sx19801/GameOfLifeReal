@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"uk.ac.bris.cs/gameoflife/gol"
-	"uk.ac.bris.cs/gameoflife/sdl"
+	"GameOfLifeReal/gol"
+	"GameOfLifeReal/sdl"
 )
 
 var sdlEvents chan gol.Event

@@ -1,9 +1,9 @@
 package sdl
 
 import (
+	"GameOfLifeReal/gol"
 	"fmt"
 	"github.com/veandco/go-sdl2/sdl"
-	"uk.ac.bris.cs/gameoflife/gol"
 )
 
 func Run(p gol.Params, events <-chan gol.Event, keyPresses chan<- rune) {

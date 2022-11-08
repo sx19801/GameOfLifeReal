@@ -2,9 +2,10 @@ package sdl
 
 import (
 	"fmt"
+	"unsafe"
 
+	"GameOfLifeReal/util"
 	"github.com/veandco/go-sdl2/sdl"
-	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type Window struct {
@@ -54,7 +55,7 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) RenderFrame() {
-	err := w.texture.Update(nil, w.pixels, int(w.Width*4))
+	err := w.texture.Update(nil, unsafe.Pointer(&w.pixels), int(w.Width*4))
 	util.Check(err)
 	err = w.renderer.Clear()
 	util.Check(err)
@@ -89,7 +90,7 @@ func (w *Window) FlipPixel(x, y int) {
 
 func (w *Window) CountPixels() int {
 	count := 0
-	for i := 0; i < int(w.Width) * int(w.Height) * 4; i += 4 {
+	for i := 0; i < int(w.Width)*int(w.Height)*4; i += 4 {
 		if w.pixels[i] == 0xFF {
 			count++
 		}

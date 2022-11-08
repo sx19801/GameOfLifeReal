@@ -72,21 +72,28 @@ func distributor(p Params, c distributorChannels) {
 
 	// TODO: Create a 2D slice to store the world.
 	newWorld := make([][]byte, p.ImageWidth)
-	for i := 0; i < p.ImageHeight; i++ {
+	for i := 0; i < p.ImageWidth; i++ {
 		newWorld[i] = make([]byte, p.ImageHeight)
 	}
-	turn := 0
+	for i := 0; i < p.ImageWidth; i++ {
+		for j := 0; j < p.ImageHeight; j++ {
+			newWorld[i][j] = <-c.ioInput
+		}
+
+	}
 
 	// TODO: Execute all turns of the Game of Life.
-	finalWorld := gameOfLife(p, newWorld)
+	for turn := 0; turn < p.Turns; turn++ {
+		newWorld = calculateNextState(p, newWorld)
+	}
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, finalWorld)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, newWorld)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
 	<-c.ioIdle
 
-	c.events <- StateChange{turn, Quitting}
+	c.events <- StateChange{p.Turns, Quitting}
 
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)

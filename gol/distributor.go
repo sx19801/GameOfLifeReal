@@ -2,6 +2,7 @@ package gol
 
 import (
 	"GameOfLifeReal/util"
+	"strconv"
 )
 
 type distributorChannels struct {
@@ -23,7 +24,7 @@ func makeByteArray(p Params) [][]byte {
 
 func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	c.ioCommand <- 1
-	c.ioFilename <- "16x16"
+	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
 		for j := 0; j < p.ImageHeight; j++ {
 			firstWorld[i][j] = <-c.ioInput

@@ -14,11 +14,6 @@ type distributorChannels struct {
 	ioInput    <-chan uint8
 }
 
-type worldSegment struct {
-	segment [][]uint
-	height  int
-}
-
 func makeByteArray(p Params) [][]byte {
 	newArray := make([][]byte, p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
@@ -97,31 +92,16 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels, n int) {
-	// SERIAL GOL
-	// Create a 2D slice to store the world.
-	/*
-		firstWorld := makeByteArray(p)
-		// Get initial world as input from io channel and populate
-		loadFirstWorld(p, firstWorld, c)
-		// Execute all turns of the Game of Life.
-		finalWorld := makeByteArray(p)
-		finalWorld = gameOfLife(p, firstWorld, c)
-	*/
+func distributor(p Params, c distributorChannels) {
 
-	// PARALLEL GOL
-	// generate array of channels for right number of workers
-	workerChannelsArray := make([]workerChannels, n)
-	for i := 0; i < n; i++ {
-		workerChannelsArray[i] = workerChannels{
-			in:  make(chan [][]uint8),
-			out: make(chan [][]uint8),
-			id:  i,
-		}
-		go work(workerChannelsArray[i])
-	}
-
-	// Report the final state using FinalTurnCompleteEvent.
+	// TODO: Create a 2D slice to store the world.
+	firstWorld := makeByteArray(p)
+	// Get initial world as input from io channel and populate
+	loadFirstWorld(p, firstWorld, c)
+	// TODO: Execute all turns of the Game of Life.
+	finalWorld := makeByteArray(p)
+	finalWorld = gameOfLife(p, firstWorld, c)
+	// TODO: Report the final state using FinalTurnCompleteEvent.
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, finalWorld, c)}
 
 	// Make sure that the Io has finished any output before exiting.

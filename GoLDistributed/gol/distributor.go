@@ -1,7 +1,11 @@
 package gol
 
 import (
+	"GameOfLifeReal/stubs"
 	"GameOfLifeReal/util"
+	"flag"
+	"fmt"
+	"net/rpc"
 	"strconv"
 )
 
@@ -32,6 +36,7 @@ func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	}
 }
 
+/*
 func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) [][]byte {
 	sum := 0
 	newWorld := make([][]byte, p.ImageWidth)
@@ -70,14 +75,15 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 	}
 	return newWorld
 }
-
-func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
+*/
+/*func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
 	for turn := 0; turn < p.Turns; turn++ {
 		world = calculateNextState(p, world, c, turn)
 		c.events <- TurnComplete{turn}
 	}
 	return world
 }
+*/
 
 func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
 	aliveCells := make([]util.Cell, 0)
@@ -91,6 +97,13 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 	return aliveCells
 }
 
+func makeCall(client *rpc.Client, world [][]byte, p stubs.Params) [][]byte {
+	request := stubs.Request{World: world, P: p}
+	response := new(stubs.Response)
+	client.Call(stubs.GolHandler, request, response)
+	return response.NewWorld
+}
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
 
@@ -99,10 +112,22 @@ func distributor(p Params, c distributorChannels) {
 	// Get initial world as input from io channel and populate
 	loadFirstWorld(p, firstWorld, c)
 	// TODO: Execute all turns of the Game of Life.
-	finalWorld := makeByteArray(p)
-	finalWorld = gameOfLife(p, firstWorld, c)
+	//finalWorld := makeByteArray(p)
+
+	//rpc call shit
+	server := "127.0.0.1:8030"
+	flag.Parse()
+	fmt.Println("Server: ", server)
+	client, _ := rpc.Dial("tcp", server)
+	defer client.Close()
+
+	result := makeCall(client, firstWorld, stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns})
+
+	// send request
+	//extract
+	//finalWorld = gameOfLife(p, firstWorld, c)
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, finalWorld, c)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, result, c)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle

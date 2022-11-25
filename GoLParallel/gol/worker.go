@@ -30,17 +30,18 @@ func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, d dist
 			if world.segment[y][x] == 255 {
 				if sum < 2 {
 					newSegment.segment[y][x] = 0
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else if sum == 2 || sum == 3 {
 					newSegment.segment[y][x] = 255
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else {
 					newSegment.segment[y][x] = 0
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				}
 			} else {
 				if sum == 3 {
 					newSegment.segment[y][x] = 255
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else {
 					newSegment.segment[y][x] = 0
 				}

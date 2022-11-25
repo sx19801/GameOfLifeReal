@@ -1,7 +1,6 @@
 package gol
 
 import (
-	"GameOfLifeReal/util"
 	"strconv"
 )
 
@@ -38,46 +37,48 @@ func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	}
 }
 
-func makeWorldSegment(p Params, i int, withFringes bool) worldSegment {
-	segLength := getSegLength(p, i)
+func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
+	segLength := getSegLength(p, i, n)
 	if withFringes {
 		segLength = segLength + 2
 	}
 	return worldSegment{
 		segment: makeByteArray(p.ImageWidth, segLength),
-		start:   getSegStart(p, i),
+		start:   getSegStart(p, i, n),
 		length:  segLength,
 	}
 }
 
-func getSegStart(p Params, i int) int {
-	if p.ImageHeight%p.Threads == 0 {
-		return (p.ImageHeight / p.Threads) * i
+// i is segment number and n is number of threads
+func getSegStart(p Params, i int, n int) int {
+	if p.ImageHeight%n == 0 {
+		return (p.ImageHeight / n) * i
 	} else {
-		if i != p.Threads-1 {
-			return ((p.ImageHeight-(p.ImageHeight%p.Threads-1))/p.Threads - 1) * i
+		if i != n-1 {
+			return ((p.ImageHeight-(p.ImageHeight%n-1))/n - 1) * i
 		} else {
-			return p.ImageHeight - (p.ImageHeight % (p.Threads - 1))
+			return p.ImageHeight - (p.ImageHeight % (n - 1))
 		}
 	}
 }
 
-func getSegLength(p Params, i int) int {
-	if p.ImageHeight%p.Threads == 0 {
-		return p.ImageHeight / p.Threads
+func getSegLength(p Params, i int, n int) int {
+	if p.ImageHeight%n == 0 {
+		return p.ImageHeight / n
 	} else {
-		if i != p.Threads-1 {
-			return (p.ImageHeight-(p.ImageHeight%p.Threads-1))/p.Threads - 1
+		if i != n-1 {
+			return (p.ImageHeight-(p.ImageHeight%n-1))/n - 1
 		} else {
-			return p.ImageHeight%p.Threads - 1
+			return p.ImageHeight%n - 1
 		}
 	}
 }
 
-func splitWorld(p Params, i int, firstWorld [][]uint8) worldSegment {
+// col is y coordinate and row is x
+func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	// work out how big the segment needs to be, allocate memory
-	seg := makeWorldSegment(p, i, true)
-	if i != 0 && i != p.Threads-1 { // if not the first or last segment
+	seg := makeWorldSegment(p, i, n, true)
+	if i != 0 && i != n-1 { // if not the first or last segment
 		for row := 0; row < seg.length; row++ {
 			for col := 0; col < p.ImageWidth; col++ {
 				seg.segment[row][col] = firstWorld[seg.start+row-1][col]
@@ -93,7 +94,7 @@ func splitWorld(p Params, i int, firstWorld [][]uint8) worldSegment {
 				seg.segment[row][col] = firstWorld[seg.start+row][col] // no -1 bcos 1st seg
 			}
 		}
-	} else if i == p.Threads-1 { // if last segment
+	} else if i == n-1 { // if last segment
 		for col := 0; col < p.ImageWidth; col++ {
 			// copy top of world into bottom row of segment (fringes)
 			seg.segment[seg.length-1][col] = firstWorld[0][col]
@@ -107,8 +108,8 @@ func splitWorld(p Params, i int, firstWorld [][]uint8) worldSegment {
 	return seg
 }
 
-// GOL LOGIC. Has since been moved to worker
-func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) worldSegment {
+/* GOL LOGIC. Has since been moved to worker
+func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) [][]byte {
 	sum := 0
 	newWorld := make([][]byte, p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
@@ -144,10 +145,9 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 			}
 		}
 	}
-	return worldSegment{newWorld, 0, p.ImageHeight}
+	return newWorld
 }
 
-/*
 func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
 	for turn := 0; turn < p.Turns; turn++ {
 		world = calculateNextState(p, world, c, turn)
@@ -170,7 +170,7 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 */
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels) {
+func distributor(p Params, c distributorChannels, n int) {
 	// SERIAL GOL
 	// Create a 2D slice to store the world.
 	/*
@@ -192,17 +192,11 @@ func distributor(p Params, c distributorChannels) {
 	loadFirstWorld(p, world, c)
 	// split world into segments, send each segment to each worker
 	for turn := 0; turn < p.Turns; turn++ {
-		if p.Threads == 1 {
-			workerChannels.in <- worldSegment{segment: world, length: p.ImageHeight, start: 0}
+		for i := 0; i < n; i++ {
+			splitWorld(p, i, n, world)
 			go work(workerChannels, c, p, turn)
-		} else {
-			for i := 0; i < p.Threads; i++ {
-				workerChannels.in <- splitWorld(p, i, world)
-				go work(workerChannels, c, p, turn)
-			}
 		}
-		// stitch world back together again
-		for recieved := 0; recieved < p.Threads; recieved++ {
+		for recieved := 0; recieved < n; recieved++ {
 			processedSeg := <-workerChannels.out
 			for row := 0; row < processedSeg.length; row++ {
 				for col := 0; col < p.ImageWidth; col++ {

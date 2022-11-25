@@ -192,7 +192,7 @@ func distributor(p Params, c distributorChannels, n int) {
 	for turn := 0; turn < p.Turns; turn++ {
 		for i := 0; i < n; i++ {
 			splitWorld(p, i, n, world)
-			go work(workerChannels, c, p)
+			go work(workerChannels, c, p, turn)
 		}
 		for recieved := 0; recieved < n; recieved++ {
 			processedSeg := <-workerChannels.out
@@ -202,10 +202,11 @@ func distributor(p Params, c distributorChannels, n int) {
 				}
 			}
 		}
+		c.events <- TurnComplete{turn}
 	}
 
 	// Report the final state using FinalTurnCompleteEvent.
-	// c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, finalWorld, c)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world, c)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle

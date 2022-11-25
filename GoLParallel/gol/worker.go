@@ -8,7 +8,7 @@ type workerChannels struct {
 }
 
 // same as calculateNextState
-func calculateNextStateOfSegment(p Params, world worldSegment) worldSegment {
+func calculateNextStateOfSegment(p Params, world worldSegment, d distributorChannels, turn int) worldSegment {
 	sum := 0
 	// make smaller segment to return processed section without the fringes
 	newSegment := worldSegment{
@@ -30,14 +30,17 @@ func calculateNextStateOfSegment(p Params, world worldSegment) worldSegment {
 			if world.segment[y][x] == 255 {
 				if sum < 2 {
 					newSegment.segment[y][x] = 0
+					d.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else if sum == 2 || sum == 3 {
 					newSegment.segment[y][x] = 255
 				} else {
 					newSegment.segment[y][x] = 0
+					d.events <- CellFlipped{turn, util.Cell{x, y}}
 				}
 			} else {
 				if sum == 3 {
 					newSegment.segment[y][x] = 255
+					d.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else {
 					newSegment.segment[y][x] = 0
 				}
@@ -59,8 +62,8 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 	return aliveCells
 }
 
-func work(w workerChannels, d distributorChannels, p Params) {
+func work(w workerChannels, d distributorChannels, p Params, turn int) {
 	firstSegment := <-w.in
-	nextSegment := calculateNextStateOfSegment(p, firstSegment)
+	nextSegment := calculateNextStateOfSegment(p, firstSegment, d, turn)
 	w.out <- nextSegment
 }

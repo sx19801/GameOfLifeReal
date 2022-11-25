@@ -3,8 +3,8 @@ package gol
 import "GameOfLifeReal/util"
 
 type workerChannels struct {
-	in  <-chan worldSegment
-	out chan<- worldSegment
+	in  chan worldSegment
+	out chan worldSegment
 	id  int
 }
 
@@ -12,10 +12,12 @@ type workerChannels struct {
 func calculateNextStateOfSegment(p Params, world worldSegment) worldSegment {
 	sum := 0
 	// make smaller segment to return processed section without the fringes
-	newSegment := make([][]byte, len(world.segment)-2)
-	for i := 0; i < p.ImageWidth; i++ {
-		newSegment[i] = make([]byte, p.ImageWidth)
+	newSegment := worldSegment{
+		segment: makeSegArray(p.ImageWidth, world.length-2),
+		start:   world.start + 1,
+		length:  world.length - 2,
 	}
+
 	for y := 1; y < len(world.segment)-1; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			sum = (int(world.segment[y-1][(x+p.ImageWidth-1)%p.ImageWidth]) +
@@ -28,22 +30,22 @@ func calculateNextStateOfSegment(p Params, world worldSegment) worldSegment {
 				int(world.segment[y+1][(x+p.ImageWidth+1)%p.ImageWidth])) / 255
 			if world.segment[y][x] == 255 {
 				if sum < 2 {
-					newSegment[y][x] = 0
+					newSegment.segment[y][x] = 0
 				} else if sum == 2 || sum == 3 {
-					newSegment[y][x] = 255
+					newSegment.segment[y][x] = 255
 				} else {
-					newSegment[y][x] = 0
+					newSegment.segment[y][x] = 0
 				}
 			} else {
 				if sum == 3 {
-					newSegment[y][x] = 255
+					newSegment.segment[y][x] = 255
 				} else {
-					newSegment[y][x] = 0
+					newSegment.segment[y][x] = 0
 				}
 			}
 		}
 	}
-	return worldSegment{}
+	return newSegment
 }
 
 func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {

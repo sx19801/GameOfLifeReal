@@ -77,17 +77,6 @@ func getSegLength(p Params, i int) int {
 func splitWorld(p Params, i int, firstWorld [][]uint8) worldSegment {
 	// work out how big the segment needs to be, allocate memory
 	seg := makeWorldSegment(p, i, true)
-	if p.Threads == 1 {
-		for col := 0; col < p.ImageWidth; col++ {
-			// copy bottom of world in (fringes)
-			seg.segment[0][col] = firstWorld[p.ImageHeight-1][col]
-		}
-		for col := 0; col < p.ImageWidth; col++ {
-			// copy top of world into bottom row of segment (fringes)
-			seg.segment[seg.length-1][col] = firstWorld[0][col]
-		}
-
-	}
 	if i != 0 && i != p.Threads-1 { // if not the first or last segment
 		for row := 0; row < seg.length; row++ {
 			for col := 0; col < p.ImageWidth; col++ {

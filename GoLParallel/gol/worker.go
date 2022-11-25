@@ -8,7 +8,7 @@ type workerChannels struct {
 }
 
 // same as calculateNextState
-func calculateNextStateOfSegment(p Params, world worldSegment, d distributorChannels, turn int) worldSegment {
+func calculateNextStateOfSegment(p Params, world worldSegment, c distributorChannels, turn int) worldSegment {
 	sum := 0
 	// make smaller segment to return processed section without the fringes
 	newSegment := worldSegment{
@@ -30,17 +30,18 @@ func calculateNextStateOfSegment(p Params, world worldSegment, d distributorChan
 			if world.segment[y][x] == 255 {
 				if sum < 2 {
 					newSegment.segment[y][x] = 0
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else if sum == 2 || sum == 3 {
 					newSegment.segment[y][x] = 255
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else {
 					newSegment.segment[y][x] = 0
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				}
 			} else {
 				if sum == 3 {
 					newSegment.segment[y][x] = 255
-					d.events <- CellFlipped{turn, util.Cell{x, y}}
+					c.events <- CellFlipped{turn, util.Cell{x, y}}
 				} else {
 					newSegment.segment[y][x] = 0
 				}

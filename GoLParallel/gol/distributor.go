@@ -188,15 +188,6 @@ func distributor(p Params, c distributorChannels, n int) {
 
 	// PARALLEL GOL
 	// generate array of channels for right number of workers
-	workerChannelsArray := make([]workerChannels, n)
-	for i := 0; i < n; i++ {
-		workerChannelsArray[i] = workerChannels{
-			in:  make(chan [][]uint8),
-			out: make(chan [][]uint8),
-			id:  i,
-		}
-		go work(workerChannelsArray[i], c, p)
-	}
 	// load initial world
 	firstWorld := makeByteArray(p)
 	loadFirstWorld(p, firstWorld, c)

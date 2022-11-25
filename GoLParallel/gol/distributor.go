@@ -19,24 +19,12 @@ type worldSegment struct {
 	length  int
 }
 
-func makeSegArray(x int, height int) [][]byte {
+func makeByteArray(x int, height int) [][]byte {
 	newArray := make([][]byte, height)
 	for i := 0; i < height; i++ {
 		newArray[i] = make([]byte, x)
 	}
 	return newArray
-}
-
-func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
-	segLength := getSegLength(p, i, n)
-	if withFringes {
-		segLength = segLength + 2
-	}
-	return worldSegment{
-		segment: makeSegArray(p.ImageWidth, segLength),
-		start:   getSegStart(p, i, n),
-		length:  segLength,
-	}
 }
 
 func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
@@ -46,6 +34,18 @@ func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 		for j := 0; j < p.ImageHeight; j++ {
 			firstWorld[i][j] = <-c.ioInput
 		}
+	}
+}
+
+func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
+	segLength := getSegLength(p, i, n)
+	if withFringes {
+		segLength = segLength + 2
+	}
+	return worldSegment{
+		segment: makeByteArray(p.ImageWidth, segLength),
+		start:   getSegStart(p, i, n),
+		length:  segLength,
 	}
 }
 
@@ -94,7 +94,7 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 		}
 	} else if i == n-1 { // if last segment
 		for col := 0; col < p.ImageWidth; col++ {
-			// copy top of world into first row of segment (fringes)
+			// copy top of world into bottom row of segment (fringes)
 			seg.segment[seg.length-1][col] = firstWorld[0][col]
 		}
 		for row := 0; row < seg.length-1; row++ {
@@ -172,32 +172,36 @@ func distributor(p Params, c distributorChannels, n int) {
 	// SERIAL GOL
 	// Create a 2D slice to store the world.
 	/*
-		firstWorld := makeSegArray(p)
+		firstWorld := makeByteArray(p)
 		// Get initial world as input from io channel and populate
 		loadFirstWorld(p, firstWorld, c)
 		// Execute all turns of the Game of Life.
-		finalWorld := makeSegArray(p)
+		finalWorld := makeByteArray(p)
 		finalWorld = gameOfLife(p, firstWorld, c)
 	*/
 
 	// PARALLEL GOL
-	// generate array of channels for right number of workers
-	workerChannelsArray := make([]workerChannels, n)
-	for i := 0; i < n; i++ {
-		workerChannelsArray[i] = workerChannels{
-			in:  make(chan worldSegment),
-			out: make(chan worldSegment),
-			id:  i,
-		}
-		go work(workerChannelsArray[i], c, p)
+	workerChannels := workerChannels{
+		in:  make(chan worldSegment),
+		out: make(chan worldSegment),
 	}
 	// load initial world
-	firstWorld := makeSegArray(p.ImageWidth, p.ImageHeight)
-	loadFirstWorld(p, firstWorld, c)
+	world := makeByteArray(p.ImageWidth, p.ImageHeight)
+	loadFirstWorld(p, world, c)
 	// split world into segments, send each segment to each worker
-	for i := 0; i < n; i++ {
-		workerChannelsArray[i].in <- splitWorld(p, i, n, firstWorld)
-		go work(workerChannelsArray[i], c, p)
+	for turn := 0; turn < p.Turns; turn++ {
+		for i := 0; i < n; i++ {
+			splitWorld(p, i, n, world)
+			go work(workerChannels, c, p)
+		}
+		for recieved := 0; recieved < n; recieved++ {
+			processedSeg := <-workerChannels.out
+			for row := 0; row < processedSeg.length; row++ {
+				for col := 0; col < p.ImageWidth; col++ {
+					world[processedSeg.start+row][col] = processedSeg.segment[row][col]
+				}
+			}
+		}
 	}
 
 	// Report the final state using FinalTurnCompleteEvent.

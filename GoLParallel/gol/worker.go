@@ -5,7 +5,6 @@ import "GameOfLifeReal/util"
 type workerChannels struct {
 	in  chan worldSegment
 	out chan worldSegment
-	id  int
 }
 
 // same as calculateNextState
@@ -13,8 +12,8 @@ func calculateNextStateOfSegment(p Params, world worldSegment) worldSegment {
 	sum := 0
 	// make smaller segment to return processed section without the fringes
 	newSegment := worldSegment{
-		segment: makeSegArray(p.ImageWidth, world.length-2),
-		start:   world.start + 1,
+		segment: makeByteArray(p.ImageWidth, world.length-2),
+		start:   world.start,
 		length:  world.length - 2,
 	}
 

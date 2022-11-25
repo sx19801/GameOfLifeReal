@@ -29,21 +29,21 @@ func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, c dist
 				int(world.segment[y+1][(x+p.ImageWidth+1)%p.ImageWidth])) / 255
 			if world.segment[y][x] == 255 {
 				if sum < 2 {
-					newSegment.segment[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
+					newSegment.segment[y-1][x] = 0
+					c.events <- CellFlipped{turn, util.Cell{x, world.start + y - 1}}
 				} else if sum == 2 || sum == 3 {
-					newSegment.segment[y][x] = 255
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
+					newSegment.segment[y-1][x] = 255
+					c.events <- CellFlipped{turn, util.Cell{x, world.start + y - 1}}
 				} else {
-					newSegment.segment[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
+					newSegment.segment[y-1][x] = 0
+					c.events <- CellFlipped{turn, util.Cell{x, world.start + y - 1}}
 				}
 			} else {
 				if sum == 3 {
-					newSegment.segment[y][x] = 255
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
+					newSegment.segment[y-1][x] = 255
+					c.events <- CellFlipped{turn, util.Cell{x, world.start + y - 1}}
 				} else {
-					newSegment.segment[y][x] = 0
+					newSegment.segment[y-1][x] = 0
 				}
 			}
 		}

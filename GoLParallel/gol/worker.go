@@ -8,7 +8,7 @@ type workerChannels struct {
 }
 
 // same as calculateNextState
-func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, d distributorChannels, turn int) worldSegment {
+func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, c distributorChannels, turn int) worldSegment {
 	sum := 0
 	// make smaller segment to return processed section without the fringes if more than one thread
 	newSegment := worldSegment{

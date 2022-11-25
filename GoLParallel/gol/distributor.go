@@ -1,6 +1,7 @@
 package gol
 
 import (
+	"GameOfLifeReal/util"
 	"strconv"
 )
 
@@ -108,8 +109,8 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	return seg
 }
 
-/* GOL LOGIC. Has since been moved to worker
-func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) [][]byte {
+// GOL LOGIC. Has since been moved to worker
+func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) worldSegment {
 	sum := 0
 	newWorld := make([][]byte, p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
@@ -145,9 +146,10 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 			}
 		}
 	}
-	return newWorld
+	return worldSegment{newWorld, 0, p.ImageHeight}
 }
 
+/*
 func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
 	for turn := 0; turn < p.Turns; turn++ {
 		world = calculateNextState(p, world, c, turn)

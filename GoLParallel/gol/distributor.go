@@ -194,9 +194,14 @@ func distributor(p Params, c distributorChannels, n int) {
 	loadFirstWorld(p, world, c)
 	// split world into segments, send each segment to each worker
 	for turn := 0; turn < p.Turns; turn++ {
-		for i := 0; i < n; i++ {
-			splitWorld(p, i, n, world)
+		if p.Threads == 1 {
+			workerChannels.in <- worldSegment{world, 0, p.ImageHeight}
 			go work(workerChannels, c, p, turn)
+		} else {
+			for i := 0; i < n; i++ {
+				workerChannels.in <- splitWorld(p, i, n, world)
+				go work(workerChannels, c, p, turn)
+			}
 		}
 		for recieved := 0; recieved < n; recieved++ {
 			processedSeg := <-workerChannels.out

@@ -192,6 +192,14 @@ func distributor(p Params, c distributorChannels, n int) {
 	// load initial world
 	world := makeByteArray(p.ImageWidth, p.ImageHeight)
 	loadFirstWorld(p, world, c)
+	// send a cell flipped event for all cells initially alive
+	for col := 0; col < p.ImageHeight; col++ {
+		for row := 0; row < p.ImageWidth; row++ {
+			if world[col][row] == 255 {
+				c.events <- CellFlipped{0, util.Cell{col, row}}
+			}
+		}
+	}
 	// split world into segments, send each segment to each worker
 	for turn := 0; turn < p.Turns; turn++ {
 		if p.Threads == 1 {

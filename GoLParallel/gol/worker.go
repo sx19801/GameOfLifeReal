@@ -17,7 +17,7 @@ func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, c dist
 		length:  world.length - 2,
 	}
 
-	for y := 1; y < world.length-1; y++ {
+	for y := 1; y < world.length-2; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			sum = (int(world.segment[y-1][(x+p.ImageWidth-1)%p.ImageWidth]) +
 				int(world.segment[y-1][(x+p.ImageWidth)%p.ImageWidth]) +

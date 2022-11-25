@@ -67,3 +67,5 @@ func work(w workerChannels, d distributorChannels, p Params, turn int) {
 	nextSegment := calculateNextStateOfSegment(p, firstSegment, d, turn)
 	w.out <- nextSegment
 }
+
+///utfytdkut

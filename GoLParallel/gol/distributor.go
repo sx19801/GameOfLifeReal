@@ -49,6 +49,7 @@ func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
 	}
 }
 
+// i is segment number and n is number of threads
 func getSegStart(p Params, i int, n int) int {
 	if p.ImageHeight%n == 0 {
 		return (p.ImageHeight / n) * i
@@ -73,6 +74,7 @@ func getSegLength(p Params, i int, n int) int {
 	}
 }
 
+// col is y coordinate and row is x
 func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	// work out how big the segment needs to be, allocate memory
 	seg := makeWorldSegment(p, i, n, true)

@@ -8,16 +8,16 @@ type workerChannels struct {
 }
 
 // same as calculateNextState
-func calculateNextStateOfSegment(p Params, world worldSegment, c distributorChannels, turn int) worldSegment {
+func calculateNextStateOfSegmentWithFringes(p Params, world worldSegment, d distributorChannels, turn int) worldSegment {
 	sum := 0
-	// make smaller segment to return processed section without the fringes
+	// make smaller segment to return processed section without the fringes if more than one thread
 	newSegment := worldSegment{
 		segment: makeByteArray(p.ImageWidth, world.length-2),
 		start:   world.start,
 		length:  world.length - 2,
 	}
 
-	for y := 1; y < len(world.segment)-1; y++ {
+	for y := 1; y < world.length-1; y++ {
 		for x := 0; x < p.ImageWidth; x++ {
 			sum = (int(world.segment[y-1][(x+p.ImageWidth-1)%p.ImageWidth]) +
 				int(world.segment[y-1][(x+p.ImageWidth)%p.ImageWidth]) +
@@ -65,8 +65,11 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 
 func work(w workerChannels, d distributorChannels, p Params, turn int) {
 	firstSegment := <-w.in
-	nextSegment := calculateNextStateOfSegment(p, firstSegment, d, turn)
-	w.out <- nextSegment
+	if p.Threads == 1 {
+		w.out <- calculateNextState(p, firstSegment.segment, d, turn)
+	} else {
+		w.out <- calculateNextStateOfSegmentWithFringes(p, firstSegment, d, turn)
+	}
 }
 
 ///utfytdkut

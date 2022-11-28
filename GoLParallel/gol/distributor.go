@@ -38,6 +38,16 @@ func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	}
 }
 
+func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
+	c.ioCommand <- ioOutput
+	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(turn)
+	for i := 0; i < p.ImageWidth; i++ {
+		for j := 0; j < p.ImageHeight; j++ {
+			c.ioOutput <- world[i][j]
+		}
+	}
+}
+
 func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
 	segLength := getSegLength(p, i, n)
 	if withFringes {
@@ -110,14 +120,22 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 }
 
 // GOL LOGIC. Has since been moved to worker
-func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) worldSegment {
+
+func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int, start int, end int, channel chan [][]byte) { //worldSegment {
 	sum := 0
 	newWorld := make([][]byte, p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
 		newWorld[i] = make([]byte, p.ImageHeight)
 	}
+
+	newSegment := make([][]byte, end-start)
+	for i := 0; i < end-start; i++ {
+		newSegment[i] = make([]byte, p.ImageWidth)
+	}
+	//for x := 0; x < p.ImageWidth; x++ {
+	//	for y := 0; y < p.ImageHeight; y++ {
 	for x := 0; x < p.ImageWidth; x++ {
-		for y := 0; y < p.ImageHeight; y++ {
+		for y := start; y < end; y++ {
 			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
 				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
 				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
@@ -144,9 +162,11 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 					newWorld[y][x] = 0
 				}
 			}
+			newSegment[y-start][x] = newWorld[y][x]
 		}
 	}
-	return worldSegment{newWorld, 0, p.ImageHeight}
+	//return worldSegment{newWorld, 0, p.ImageHeight}
+	channel <- newSegment
 }
 
 /*
@@ -172,7 +192,7 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 */
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels, n int) {
+func distributor(p Params, c distributorChannels) {
 	// SERIAL GOL
 	// Create a 2D slice to store the world.
 	/*
@@ -185,10 +205,10 @@ func distributor(p Params, c distributorChannels, n int) {
 	*/
 
 	// PARALLEL GOL
-	workerChannels := workerChannels{
-		in:  make(chan worldSegment),
-		out: make(chan worldSegment),
-	}
+	// workerChannels := workerChannels{
+	// 	in:  make(chan worldSegment),
+	// 	out: make(chan worldSegment),
+	// }
 	// load initial world
 	world := makeByteArray(p.ImageWidth, p.ImageHeight)
 	loadFirstWorld(p, world, c)
@@ -200,28 +220,59 @@ func distributor(p Params, c distributorChannels, n int) {
 			}
 		}
 	}
+
+	//turn is updated outside of loop
+	turn := 0
 	// split world into segments, send each segment to each worker
-	for turn := 0; turn < p.Turns; turn++ {
-		if p.Threads == 1 {
-			workerChannels.in <- worldSegment{world, 0, p.ImageHeight}
-			go work(workerChannels, c, p, turn)
-		} else {
-			for i := 0; i < n; i++ {
-				workerChannels.in <- splitWorld(p, i, n, world)
-				go work(workerChannels, c, p, turn)
-			}
+	for ; turn < p.Turns; turn++ {
+		// if p.Threads == 1 {
+		// 	go work(workerChannels, c, p, turn)
+		// 	workerChannels.in <- worldSegment{world, 0, p.ImageHeight}
+
+		// } else {
+		// 	for i := 0; i < p.Threads; i++ {
+		// 		go work(workerChannels, c, p, turn)
+		// 		workerChannels.in <- splitWorld(p, i, p.Threads, world)
+
+		// 	}
+		// }
+
+		//J CODE CHANGE ALL VARIABLE AND SHIT, DEAD DIVISION
+		segmentHeight := p.ImageHeight / p.Threads
+
+		channels := make([]chan [][]byte, p.Threads)
+		for i := range channels {
+			channels[i] = make(chan [][]byte)
 		}
-		for recieved := 0; recieved < n; recieved++ {
-			processedSeg := <-workerChannels.out
-			for row := 0; row < processedSeg.length; row++ {
-				for col := 0; col < p.ImageWidth; col++ {
-					world[processedSeg.start+row][col] = processedSeg.segment[row][col]
-				}
+
+		for i := 0; i < p.Threads; i++ {
+			if i == p.Threads-1 {
+				go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
+			} else {
+				go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
 			}
+
 		}
+		var newWorld [][]byte
+		for i := 0; i < p.Threads; i++ {
+			newWorld = append(newWorld, <-channels[i]...)
+		}
+
+		world = newWorld
+		// j code yes
+
+		// for recieved := 0; recieved < p.Threads; recieved++ {
+		// 	processedSeg := <-workerChannels.out
+		// 	for row := 0; row < processedSeg.length; row++ {
+		// 		for col := 0; col < p.ImageWidth; col++ {
+		// 			world[processedSeg.start+row][col] = processedSeg.segment[row][col]
+		// 		}
+		// 	}
+		// }
 		c.events <- TurnComplete{turn}
 	}
-
+	//do image output shit here
+	outputWorld(p, world, c, turn)
 	// Report the final state using FinalTurnCompleteEvent.
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world, c)}
 

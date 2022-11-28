@@ -237,7 +237,7 @@ func distributor(p Params, c distributorChannels) {
 		// 	}
 		// }
 
-		//J CODE CHANGE ALL VARIABLE AND SHIT, DEAD DIVISION
+		// BAD DIVISION
 		segmentHeight := p.ImageHeight / p.Threads
 
 		channels := make([]chan [][]byte, p.Threads)
@@ -259,7 +259,7 @@ func distributor(p Params, c distributorChannels) {
 		}
 
 		world = newWorld
-		// j code yes
+		// yes
 
 		// for recieved := 0; recieved < p.Threads; recieved++ {
 		// 	processedSeg := <-workerChannels.out

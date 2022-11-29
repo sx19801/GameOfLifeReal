@@ -120,18 +120,6 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	return seg
 }
 
-// GOL LOGIC. Has since been moved to worker
-
-/*
-func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
-	for turn := 0; turn < p.Turns; turn++ {
-		world = calculateNextState(p, world, c, turn)
-		c.events <- TurnComplete{turn}
-	}
-	return world
-}
-*/
-
 func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	aliveCells := make([]util.Cell, 0)
 	for x := 0; x < p.ImageWidth; x++ {
@@ -176,37 +164,48 @@ func distributor(p Params, c distributorChannels) {
 
 	//turn is updated outside of loop
 	turn := 0
-	// split world into segments, send each segment to each worker
-	for ; turn < p.Turns; turn++ {
-
-		// BAD DIVISION
-		segmentHeight := p.ImageHeight / p.Threads
-		channels := make([]chan [][]byte, p.Threads)
-		for i := range channels {
-			channels[i] = make(chan [][]byte)
+	channels := make([]chan [][]byte, p.Threads)
+	for i := range channels {
+		channels[i] = make(chan [][]byte)
+	}
+	finished := make(chan bool)
+	tick := make(chan bool)
+	segmentHeight := p.ImageHeight / p.Threads
+	for i := 0; i < p.Threads; i++ {
+		if i == p.Threads-1 { //case for last segment
+			go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
+		} else {
+			go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
 		}
-
-		ticker := make(chan bool)
-		go twoSecTicker(ticker)
-		for i := 0; i < p.Threads; i++ {
-			if i == p.Threads-1 { //case for last segment
-				go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
-			} else {
-				go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
+	}
+	go twoSecTicker(tick)
+	for turn < p.Turns {
+		select {
+		case <-channels[0]:
+			var newWorld [][]byte
+			for i := 0; i < p.Threads; i++ {
+				newWorld = append(newWorld, <-channels[i]...)
 			}
+			world = newWorld
+			c.events <- TurnComplete{turn}
+			finished <- true
+			turn++
+		case <-finished:
+			segmentHeight := p.ImageHeight / p.Threads
+			for i := 0; i < p.Threads; i++ {
+				if i == p.Threads-1 { //case for last segment
+					go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
+				} else {
+					go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
+				}
+			}
+		}
+		select {
+		case <-tick:
+			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, world))}
+		default:
 
 		}
-		var newWorld [][]byte
-		for i := 0; i < p.Threads; i++ {
-			newWorld = append(newWorld, <-channels[i]...)
-		}
-		if <-ticker {
-			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, newWorld))}
-		}
-		world = newWorld
-		// yes
-
-		c.events <- TurnComplete{turn}
 	}
 	//do image output shit here
 	outputWorld(p, world, c, turn)
@@ -225,7 +224,7 @@ func distributor(p Params, c distributorChannels) {
 
 func twoSecTicker(tick chan bool) {
 	for {
-		time.Sleep(2000)
+		time.Sleep(2000 * time.Millisecond)
 		tick <- true
 	}
 }

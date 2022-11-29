@@ -10,7 +10,6 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 	for i := 0; i < p.ImageWidth; i++ {
 		newWorld[i] = make([]byte, p.ImageHeight)
 	}
-
 	newSegment := make([][]byte, end-start)
 	for i := 0; i < end-start; i++ {
 		newSegment[i] = make([]byte, p.ImageWidth)
@@ -101,12 +100,10 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 // 	}
 // 	return newSegment
 // }
-
-// func work(w workerChannels, d distributorChannels, p Params, turn int) {
-// 	firstSegment := <-w.in
-// 	if p.Threads == 1 {
-// 		w.out <- calculateNextState(p, firstSegment.segment, d, turn)
-// 	} else {
-// 		w.out <- calculateNextStateOfSegmentWithFringes(p, firstSegment, d, turn)
-// 	}
-// }
+/*
+	func work(w workerChannels, d distributorChannels, p Params, turn int) {
+	firstSegment := <-w.in
+ 	if p.Threads == 1 {
+		w.out <- calculateNextState(p, firstSegment.segment, d, turn)
+} else {	w.out <- calculateNextStateOfSegmentWithFringes(p, firstSegment, d, turn)
+*/

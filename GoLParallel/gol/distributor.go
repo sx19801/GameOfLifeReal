@@ -3,6 +3,7 @@ package gol
 import (
 	"GameOfLifeReal/util"
 	"strconv"
+	"time"
 )
 
 type distributorChannels struct {
@@ -48,7 +49,7 @@ func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
 	}
 }
 
-func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
+func makeWorldSegment(p Params, i int, withFringes bool) worldSegment {
 	segLength := getSegLength(p, i)
 	if withFringes {
 		segLength = segLength + 2
@@ -88,7 +89,7 @@ func getSegLength(p Params, i int) int {
 // col is y coordinate and row is x
 func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	// work out how big the segment needs to be, allocate memory
-	seg := makeWorldSegment(p, i, n, true)
+	seg := makeWorldSegment(p, i, true)
 	if i != 0 && i != n-1 { // if not the first or last segment
 		for row := 0; row < seg.length; row++ {
 			for col := 0; col < p.ImageWidth; col++ {
@@ -129,8 +130,9 @@ func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
 	}
 	return world
 }
+*/
 
-func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
+func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	aliveCells := make([]util.Cell, 0)
 	for x := 0; x < p.ImageWidth; x++ {
 		for y := 0; y < p.ImageHeight; y++ {
@@ -141,7 +143,6 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 	}
 	return aliveCells
 }
-*/
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels) {
@@ -177,26 +178,16 @@ func distributor(p Params, c distributorChannels) {
 	turn := 0
 	// split world into segments, send each segment to each worker
 	for ; turn < p.Turns; turn++ {
-		// if p.Threads == 1 {
-		// 	go work(workerChannels, c, p, turn)
-		// 	workerChannels.in <- worldSegment{world, 0, p.ImageHeight}
-
-		// } else {
-		// 	for i := 0; i < p.Threads; i++ {
-		// 		go work(workerChannels, c, p, turn)
-		// 		workerChannels.in <- splitWorld(p, i, p.Threads, world)
-
-		// 	}
-		// }
 
 		// BAD DIVISION
 		segmentHeight := p.ImageHeight / p.Threads
-
 		channels := make([]chan [][]byte, p.Threads)
 		for i := range channels {
 			channels[i] = make(chan [][]byte)
 		}
 
+		ticker := make(chan bool)
+		go twoSecTicker(ticker)
 		for i := 0; i < p.Threads; i++ {
 			if i == p.Threads-1 { //case for last segment
 				go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
@@ -209,24 +200,18 @@ func distributor(p Params, c distributorChannels) {
 		for i := 0; i < p.Threads; i++ {
 			newWorld = append(newWorld, <-channels[i]...)
 		}
-
+		if <-ticker {
+			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, newWorld))}
+		}
 		world = newWorld
 		// yes
 
-		// for recieved := 0; recieved < p.Threads; recieved++ {
-		// 	processedSeg := <-workerChannels.out
-		// 	for row := 0; row < processedSeg.length; row++ {
-		// 		for col := 0; col < p.ImageWidth; col++ {
-		// 			world[processedSeg.start+row][col] = processedSeg.segment[row][col]
-		// 		}
-		// 	}
-		// }
 		c.events <- TurnComplete{turn}
 	}
 	//do image output shit here
 	outputWorld(p, world, c, turn)
 	// Report the final state using FinalTurnCompleteEvent.
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world, c)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
@@ -236,4 +221,11 @@ func distributor(p Params, c distributorChannels) {
 
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
+}
+
+func twoSecTicker(tick chan bool) {
+	for {
+		time.Sleep(2000)
+		tick <- true
+	}
 }

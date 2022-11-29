@@ -2,7 +2,6 @@ package gol
 
 import (
 	"GameOfLifeReal/util"
-	//"fmt"
 )
 
 func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int, start int, end int, channel chan [][]byte) { //worldSegment {
@@ -102,18 +101,6 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 // 	}
 // 	return newSegment
 // }
-
-func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
-	aliveCells := make([]util.Cell, 0)
-	for x := 0; x < p.ImageWidth; x++ {
-		for y := 0; y < p.ImageHeight; y++ {
-			if world[y][x] == 255 {
-				aliveCells = append(aliveCells, util.Cell{x, y})
-			}
-		}
-	}
-	return aliveCells
-}
 
 // func work(w workerChannels, d distributorChannels, p Params, turn int) {
 // 	firstSegment := <-w.in

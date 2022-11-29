@@ -187,7 +187,6 @@ func distributor(p Params, c distributorChannels) {
 		}
 
 		ticker := make(chan bool)
-		go twoSecTicker(ticker)
 		for i := 0; i < p.Threads; i++ {
 			if i == p.Threads-1 { //case for last segment
 				go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
@@ -200,6 +199,7 @@ func distributor(p Params, c distributorChannels) {
 		for i := 0; i < p.Threads; i++ {
 			newWorld = append(newWorld, <-channels[i]...)
 		}
+		go twoSecTicker(ticker)
 		if <-ticker {
 			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, newWorld))}
 		}
@@ -225,7 +225,7 @@ func distributor(p Params, c distributorChannels) {
 
 func twoSecTicker(tick chan bool) {
 	for {
-		time.Sleep(2000)
+		time.Sleep(2000 * time.Millisecond)
 		tick <- true
 	}
 }

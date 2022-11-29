@@ -121,54 +121,6 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 
 // GOL LOGIC. Has since been moved to worker
 
-func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int, start int, end int, channel chan [][]byte) { //worldSegment {
-	sum := 0
-	newWorld := make([][]byte, p.ImageWidth)
-	for i := 0; i < p.ImageWidth; i++ {
-		newWorld[i] = make([]byte, p.ImageHeight)
-	}
-
-	newSegment := make([][]byte, end-start)
-	for i := 0; i < end-start; i++ {
-		newSegment[i] = make([]byte, p.ImageWidth)
-	}
-	//for x := 0; x < p.ImageWidth; x++ {
-	//	for y := 0; y < p.ImageHeight; y++ {
-	for x := 0; x < p.ImageWidth; x++ {
-		for y := start; y < end; y++ {
-			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])) / 255
-			if world[y][x] == 255 {
-				if sum < 2 {
-					newWorld[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				} else if sum == 2 || sum == 3 {
-					newWorld[y][x] = 255
-				} else {
-					newWorld[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				}
-			} else {
-				if sum == 3 {
-					newWorld[y][x] = 255
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				} else {
-					newWorld[y][x] = 0
-				}
-			}
-			newSegment[y-start][x] = newWorld[y][x]
-		}
-	}
-	//return worldSegment{newWorld, 0, p.ImageHeight}
-	channel <- newSegment
-}
-
 /*
 func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
 	for turn := 0; turn < p.Turns; turn++ {

@@ -2,7 +2,6 @@ package gol
 
 import (
 	"strconv"
-	"sync"
 	"time"
 
 	"uk.ac.bris.cs/gameoflife/util"
@@ -163,30 +162,29 @@ func twoSecondTicker(ticker *time.Ticker, turn int, p Params, world [][]byte, c 
 	// 	fmt.Println("inside ticker ", turn)
 	// }
 
-	for {
-		select {
-		case <-ticker.C:
+	select {
+	case <-ticker.C:
 
-			//fmt.Println("ticker ", turn)
+		//fmt.Println("ticker ", turn)
 
-			// if len(calculateAliveCells(p, world, c))%5 == 0 {
-			// 	fmt.Println(len(calculateAliveCells(p, world, c)))
-			// }
-			if turn != 0 {
-				c.events <- AliveCellsCount{CompletedTurns: turn, CellsCount: len(calculateAliveCells(p, world, c))}
-			}
-
-		default:
-			// if turn%100 == 0 {
-			// 	fmt.Println("default ", turn)
-			// }
-			return
+		// if len(calculateAliveCells(p, world, c))%5 == 0 {
+		// 	fmt.Println(len(calculateAliveCells(p, world, c)))
+		// }
+		if turn != 0 {
+			c.events <- AliveCellsCount{CompletedTurns: turn, CellsCount: len(calculateAliveCells(p, world, c))}
 		}
+
+	default:
+		// 	// if turn%100 == 0 {
+		// 	// 	fmt.Println("default ", turn)
+		// 	// }
+		// 	return
 	}
+
 }
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels, mutex sync.Mutex) {
+func distributor(p Params, c distributorChannels) {
 	// SERIAL GOL
 	// Create a 2D slice to store the world.
 	/*

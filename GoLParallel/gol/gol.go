@@ -1,5 +1,7 @@
 package gol
 
+import "sync"
+
 // Params provides the details of how to run the Game of Life and which image to load.
 type Params struct {
 	Turns       int
@@ -36,5 +38,5 @@ func Run(p Params, events chan<- Event, keyPresses <-chan rune) {
 		ioOutput:   ioOutput,
 		ioInput:    ioInput,
 	}
-	distributor(p, distributorChannels)
+	distributor(p, distributorChannels, sync.Mutex{})
 }

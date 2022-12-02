@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"GameOfLifeReal/gol"
-	"GameOfLifeReal/util"
+	"uk.ac.bris.cs/gameoflife/gol"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 // TestAlive will automatically check the 512x512 cell counts for the first 5 messages.

@@ -1,12 +1,13 @@
 package gol
 
 import (
-	"GameOfLifeReal/util"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
+
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type ioChannels struct {
@@ -140,8 +141,10 @@ func startIo(p Params, c ioChannels) {
 			switch command {
 			case ioInput:
 				io.readPgmImage()
+				//fmt.Println("read pgm")
 			case ioOutput:
 				io.writePgmImage()
+				//fmt.Println("write pgm")
 			case ioCheckIdle:
 				io.channels.idle <- true
 			}

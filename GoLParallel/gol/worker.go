@@ -1,7 +1,7 @@
 package gol
 
 import (
-	"GameOfLifeReal/util"
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int, start int, end int, channel chan [][]byte) { //worldSegment {
@@ -10,6 +10,7 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 	for i := 0; i < p.ImageWidth; i++ {
 		newWorld[i] = make([]byte, p.ImageHeight)
 	}
+
 	newSegment := make([][]byte, end-start)
 	for i := 0; i < end-start; i++ {
 		newSegment[i] = make([]byte, p.ImageWidth)
@@ -100,10 +101,24 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 // 	}
 // 	return newSegment
 // }
-/*
-	func work(w workerChannels, d distributorChannels, p Params, turn int) {
-	firstSegment := <-w.in
- 	if p.Threads == 1 {
-		w.out <- calculateNextState(p, firstSegment.segment, d, turn)
-} else {	w.out <- calculateNextStateOfSegmentWithFringes(p, firstSegment, d, turn)
-*/
+
+func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
+	aliveCells := make([]util.Cell, 0)
+	for x := 0; x < p.ImageWidth; x++ {
+		for y := 0; y < p.ImageHeight; y++ {
+			if world[y][x] == 255 {
+				aliveCells = append(aliveCells, util.Cell{x, y})
+			}
+		}
+	}
+	return aliveCells
+}
+
+// func work(w workerChannels, d distributorChannels, p Params, turn int) {
+// 	firstSegment := <-w.in
+// 	if p.Threads == 1 {
+// 		w.out <- calculateNextState(p, firstSegment.segment, d, turn)
+// 	} else {
+// 		w.out <- calculateNextStateOfSegmentWithFringes(p, firstSegment, d, turn)
+// 	}
+// }

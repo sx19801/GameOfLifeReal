@@ -1,9 +1,11 @@
 package gol
 
 import (
-	"GameOfLifeReal/util"
 	"strconv"
+	"sync"
 	"time"
+
+	"uk.ac.bris.cs/gameoflife/util"
 )
 
 type distributorChannels struct {
@@ -32,15 +34,17 @@ func makeByteArray(x int, height int) [][]byte {
 func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	c.ioCommand <- 1
 	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
+
 	for i := 0; i < p.ImageWidth; i++ {
 		for j := 0; j < p.ImageHeight; j++ {
 			firstWorld[i][j] = <-c.ioInput
 		}
 	}
+
 }
 
 func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
-	c.ioCommand <- ioOutput
+	c.ioCommand <- 0
 	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(turn)
 	for i := 0; i < p.ImageWidth; i++ {
 		for j := 0; j < p.ImageHeight; j++ {
@@ -49,39 +53,39 @@ func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
 	}
 }
 
-func makeWorldSegment(p Params, i int, withFringes bool) worldSegment {
-	segLength := getSegLength(p, i)
+func makeWorldSegment(p Params, i int, n int, withFringes bool) worldSegment {
+	segLength := getSegLength(p, i, n)
 	if withFringes {
 		segLength = segLength + 2
 	}
 	return worldSegment{
 		segment: makeByteArray(p.ImageWidth, segLength),
-		start:   getSegStart(p, i),
+		start:   getSegStart(p, i, n),
 		length:  segLength,
 	}
 }
 
 // i is segment number and n is number of threads
-func getSegStart(p Params, i int) int {
-	if p.ImageHeight%p.Threads == 0 {
-		return (p.ImageHeight / p.Threads) * i
+func getSegStart(p Params, i int, n int) int {
+	if p.ImageHeight%n == 0 {
+		return (p.ImageHeight / n) * i
 	} else {
-		if i != p.Threads-1 {
-			return ((p.ImageHeight-(p.ImageHeight%p.Threads-1))/p.Threads - 1) * i
+		if i != n-1 {
+			return ((p.ImageHeight-(p.ImageHeight%n-1))/n - 1) * i
 		} else {
-			return p.ImageHeight - (p.ImageHeight % (p.Threads - 1))
+			return p.ImageHeight - (p.ImageHeight % (n - 1))
 		}
 	}
 }
 
-func getSegLength(p Params, i int) int {
-	if p.ImageHeight%p.Threads == 0 {
-		return p.ImageHeight / p.Threads
+func getSegLength(p Params, i int, n int) int {
+	if p.ImageHeight%n == 0 {
+		return p.ImageHeight / n
 	} else {
-		if i != p.Threads-1 {
-			return (p.ImageHeight-(p.ImageHeight%p.Threads-1))/p.Threads - 1
+		if i != n-1 {
+			return (p.ImageHeight-(p.ImageHeight%n-1))/n - 1
 		} else {
-			return p.ImageHeight%p.Threads - 1
+			return p.ImageHeight%n - 1
 		}
 	}
 }
@@ -89,7 +93,7 @@ func getSegLength(p Params, i int) int {
 // col is y coordinate and row is x
 func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	// work out how big the segment needs to be, allocate memory
-	seg := makeWorldSegment(p, i, true)
+	seg := makeWorldSegment(p, i, n, true)
 	if i != 0 && i != n-1 { // if not the first or last segment
 		for row := 0; row < seg.length; row++ {
 			for col := 0; col < p.ImageWidth; col++ {
@@ -120,7 +124,18 @@ func splitWorld(p Params, i int, n int, firstWorld [][]uint8) worldSegment {
 	return seg
 }
 
-func calculateAliveCells(p Params, world [][]byte) []util.Cell {
+// GOL LOGIC. Has since been moved to worker
+
+/*
+func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
+	for turn := 0; turn < p.Turns; turn++ {
+		world = calculateNextState(p, world, c, turn)
+		c.events <- TurnComplete{turn}
+	}
+	return world
+}
+
+func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
 	aliveCells := make([]util.Cell, 0)
 	for x := 0; x < p.ImageWidth; x++ {
 		for y := 0; y < p.ImageHeight; y++ {
@@ -131,9 +146,47 @@ func calculateAliveCells(p Params, world [][]byte) []util.Cell {
 	}
 	return aliveCells
 }
+*/
+// 	defer ticker.Stop()
+// 	if turn != 0 {
+// 		for _ = range ticker.C {
+// 			fmt.Println(turn)
+// 			mutex.Lock()
+// 			c.events <- AliveCellsCount{CompletedTurns: turn, CellsCount: len(calculateAliveCells(p, world, c))}
+// 			mutex.Unlock()
+// 		}
+// 	}
+
+// }
+func twoSecondTicker(ticker *time.Ticker, turn int, p Params, world [][]byte, c distributorChannels) {
+	// if turn%100 == 0 {
+	// 	fmt.Println("inside ticker ", turn)
+	// }
+
+	for {
+		select {
+		case <-ticker.C:
+
+			//fmt.Println("ticker ", turn)
+
+			// if len(calculateAliveCells(p, world, c))%5 == 0 {
+			// 	fmt.Println(len(calculateAliveCells(p, world, c)))
+			// }
+			if turn != 0 {
+				c.events <- AliveCellsCount{CompletedTurns: turn, CellsCount: len(calculateAliveCells(p, world, c))}
+			}
+
+		default:
+			// if turn%100 == 0 {
+			// 	fmt.Println("default ", turn)
+			// }
+			return
+		}
+	}
+}
 
 // distributor divides the work between workers and interacts with other goroutines.
-func distributor(p Params, c distributorChannels) {
+func distributor(p Params, c distributorChannels, mutex sync.Mutex) {
 	// SERIAL GOL
 	// Create a 2D slice to store the world.
 	/*
@@ -153,64 +206,91 @@ func distributor(p Params, c distributorChannels) {
 	// load initial world
 	world := makeByteArray(p.ImageWidth, p.ImageHeight)
 	loadFirstWorld(p, world, c)
+
 	// send a cell flipped event for all cells initially alive
 	for col := 0; col < p.ImageHeight; col++ {
 		for row := 0; row < p.ImageWidth; row++ {
 			if world[col][row] == 255 {
+				//fmt.Println("yo")
 				c.events <- CellFlipped{0, util.Cell{col, row}}
 			}
+			//fmt.Println("cell flipped done")
 		}
 	}
 
 	//turn is updated outside of loop
+
+	ticker := time.NewTicker(2 * time.Second)
 	turn := 0
-	channels := make([]chan [][]byte, p.Threads)
-	for i := range channels {
-		channels[i] = make(chan [][]byte)
-	}
-	finished := make(chan bool)
-	tick := make(chan bool)
-	segmentHeight := p.ImageHeight / p.Threads
-	for i := 0; i < p.Threads; i++ {
-		if i == p.Threads-1 { //case for last segment
-			go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
-		} else {
-			go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
+
+	//select {}
+	// split world into segments, send each segment to each worker
+	for ; turn < p.Turns; turn++ {
+		go twoSecondTicker(ticker, turn, p, world, c)
+		// BAD DIVISION
+		segmentHeight := p.ImageHeight / p.Threads
+
+		channels := make([]chan [][]byte, p.Threads)
+		for i := range channels {
+			channels[i] = make(chan [][]byte)
 		}
-	}
-	go twoSecTicker(tick)
-	for turn < p.Turns {
-		select {
-		case <-channels[0]:
-			var newWorld [][]byte
-			for i := 0; i < p.Threads; i++ {
-				newWorld = append(newWorld, <-channels[i]...)
+
+		for i := 0; i < p.Threads; i++ {
+			if i == p.Threads-1 {
+				go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
+			} else {
+				go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
+				//fmt.Println("next state calculated")
 			}
-			world = newWorld
-			c.events <- TurnComplete{turn}
-			finished <- true
-			turn++
-		case <-finished:
-			segmentHeight := p.ImageHeight / p.Threads
-			for i := 0; i < p.Threads; i++ {
-				if i == p.Threads-1 { //case for last segment
-					go calculateNextState(p, world, c, turn, segmentHeight*i, p.ImageHeight, channels[i])
-				} else {
-					go calculateNextState(p, world, c, turn, segmentHeight*i, segmentHeight*(i+1), channels[i])
-				}
-			}
-		}
-		select {
-		case <-tick:
-			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, world))}
-		default:
 
 		}
+
+		var newWorld [][]byte
+		for i := 0; i < p.Threads; i++ {
+			newWorld = append(newWorld, <-channels[i]...)
+		}
+
+		// yes
+
+		// for recieved := 0; recieved < p.Threads; recieved++ {
+		// 	processedSeg := <-workerChannels.out
+		// 	for row := 0; row < processedSeg.length; row++ {
+		// 		for col := 0; col < p.ImageWidth; col++ {
+		// 			world[processedSeg.start+row][col] = processedSeg.segment[row][col]
+		// 		}
+		// 	}
+		// }
+
+		//mutex.Lock()
+
+		//mutex.Unlock()
+		//done := make(chan bool)
+
+		// select {
+		// case <-ticker.C:
+		// 	if turn != 0 {
+		// 		c.events <- AliveCellsCount{CompletedTurns: turn, CellsCount: len(calculateAliveCells(p, world, c))}
+		// 	}
+		// case <-done:
+		// 	if turn%100 == 0 {
+		// 		fmt.Println("default", turn)
+		// 	}
+		// }
+
+		// if turn%100 == 0 {
+		// 	fmt.Println("distributor", turn)
+		// }
+
+		world = newWorld
+		//fmt.Println("before turn complete")
+		c.events <- TurnComplete{turn}
+
 	}
+
 	//do image output shit here
 	outputWorld(p, world, c, turn)
 	// Report the final state using FinalTurnCompleteEvent.
-	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world)}
+	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, world, c)}
 
 	// Make sure that the Io has finished any output before exiting.
 	c.ioCommand <- ioCheckIdle
@@ -222,9 +302,4 @@ func distributor(p Params, c distributorChannels) {
 	close(c.events)
 }
 
-func twoSecTicker(tick chan bool) {
-	for {
-		time.Sleep(2000 * time.Millisecond)
-		tick <- true
-	}
-}
+//uv

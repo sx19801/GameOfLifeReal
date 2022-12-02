@@ -3,11 +3,12 @@ package main
 //yo
 
 import (
-	"GameOfLifeReal/gol"
-	"GameOfLifeReal/sdl"
 	"flag"
 	"fmt"
 	"runtime"
+
+	"uk.ac.bris.cs/gameoflife/gol"
+	"uk.ac.bris.cs/gameoflife/sdl"
 )
 
 // main is the function called when starting Game of Life with 'go run .'

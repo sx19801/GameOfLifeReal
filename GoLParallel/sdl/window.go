@@ -2,9 +2,9 @@ package sdl
 
 import (
 	"fmt"
-	"unsafe"
 
-	"GameOfLifeReal/util"
+	"uk.ac.bris.cs/gameoflife/util"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 
@@ -55,7 +55,7 @@ func (w *Window) Destroy() {
 }
 
 func (w *Window) RenderFrame() {
-	err := w.texture.Update(nil, unsafe.Pointer(&w.pixels), int(w.Width*4))
+	err := w.texture.Update(nil, w.pixels, int(w.Width*4))
 	util.Check(err)
 	err = w.renderer.Clear()
 	util.Check(err)

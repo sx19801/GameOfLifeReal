@@ -212,7 +212,7 @@ func distributor(p Params, c distributorChannels, mutex sync.Mutex) {
 		for row := 0; row < p.ImageWidth; row++ {
 			if world[col][row] == 255 {
 				//fmt.Println("yo")
-				c.events <- CellFlipped{0, util.Cell{col, row}}
+				c.events <- CellFlipped{0, util.Cell{row, col}}
 			}
 			//fmt.Println("cell flipped done")
 		}

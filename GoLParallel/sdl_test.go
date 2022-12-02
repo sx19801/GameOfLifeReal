@@ -10,7 +10,6 @@ import (
 
 	"uk.ac.bris.cs/gameoflife/gol"
 	"uk.ac.bris.cs/gameoflife/sdl"
-	//"github.com/veandco/go-sdl2/sdl"
 )
 
 var sdlEvents chan gol.Event
@@ -32,7 +31,7 @@ func TestMain(m *testing.M) {
 		}()
 		result <- res
 	}()
-	//sdl.Run(p, sdlEvents, nil)
+	// sdl.Run(p, sdlEvents, nil)
 	var w *sdl.Window = nil
 	if !(*noVis) {
 		w = sdl.NewWindow(int32(p.ImageWidth), int32(p.ImageHeight))
@@ -99,7 +98,6 @@ func TestSdl(t *testing.T) {
 		turnNum := 0
 		events := make(chan gol.Event)
 		go gol.Run(p, events, nil)
-		//fmt.Println("1")
 		time.Sleep(2 * time.Second)
 		final := false
 		for event := range events {
@@ -107,7 +105,6 @@ func TestSdl(t *testing.T) {
 			case gol.CellFlipped:
 				sdlEvents <- e
 			case gol.TurnComplete:
-				//fmt.Println("2")
 				turnNum++
 				sdlEvents <- e
 				aliveCount := <-sdlAlive
@@ -118,7 +115,6 @@ func TestSdl(t *testing.T) {
 					t.FailNow()
 				}
 			case gol.FinalTurnComplete:
-				//fmt.Println("3")
 				final = true
 				sdlEvents <- e
 			}

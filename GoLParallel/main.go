@@ -52,6 +52,7 @@ func main() {
 	fmt.Println("Height:", params.ImageHeight)
 
 	keyPresses := make(chan rune, 10)
+
 	events := make(chan gol.Event, 1000)
 
 	go gol.Run(params, events, keyPresses)

@@ -28,7 +28,7 @@ func makeByteArray(p stubs.Params) [][]byte {
 // 	}
 // }
 
-func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels*/, turn int) [][]byte {
+func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels*/) [][]byte {
 	sum := 0
 	newWorld := makeByteArray(p)
 	for x := 0; x < p.ImageWidth; x++ {
@@ -82,10 +82,12 @@ type GameOfLifeOperations struct{}
 func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.Response) (err error) {
 
 	newWorld := req.World
-	fmt.Println(req.P.Turns)
+	//fmt.Println("req.p.turns ", req.P.Turns)
 	for turn := 0; turn < req.P.Turns; turn++ {
-		newWorld = calculateNextState(req.P, newWorld, req.P.Turns)
-		//fmt.Println("wassup")
+		newWorld = calculateNextState(req.P, newWorld)
+
+		res.CurrentTurn = turn
+		fmt.Println(res.CurrentTurn)
 	}
 	res.NewWorld = newWorld
 	return
@@ -99,4 +101,5 @@ func main() {
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
+
 }

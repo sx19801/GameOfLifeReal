@@ -10,7 +10,8 @@ type Params struct {
 }
 
 type Response struct {
-	NewWorld [][]byte
+	NewWorld    [][]byte
+	CurrentTurn int
 }
 
 type Request struct {

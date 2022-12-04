@@ -85,7 +85,7 @@ func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.R
 	//fmt.Println("req.p.turns ", req.P.Turns)
 	for turn := 0; turn < req.P.Turns; turn++ {
 		newWorld = calculateNextState(req.P, newWorld)
-
+		res.NewWorld = newWorld
 		res.CurrentTurn = turn
 		fmt.Println(res.CurrentTurn)
 	}

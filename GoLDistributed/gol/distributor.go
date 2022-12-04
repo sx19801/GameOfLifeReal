@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"strconv"
+	"time"
 )
 
 type distributorChannels struct {
@@ -113,8 +114,8 @@ func distributor(p Params, c distributorChannels) {
 	loadFirstWorld(p, firstWorld, c)
 	// TODO: Execute all turns of the Game of Life.
 	//finalWorld := makeByteArray(p)
-	// running := true
-	// ticker := time.NewTicker(2 * time.Second)
+	running := true
+	ticker := time.NewTicker(2 * time.Second)
 	//rpc call shit
 	server := "127.0.0.1:8030"
 	flag.Parse()
@@ -126,26 +127,26 @@ func distributor(p Params, c distributorChannels) {
 
 	call := client.Go(stubs.GolHandler, request, response, nil)
 	//fmt.Println("p.turns", p.Turns)
-	// for running {
-	// 	// 	//request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
-	// 	// 	response := new(stubs.Response)
-	// 	select {
-	// 	case <-ticker.C:
-	// 		fmt.Println("yo")
-	// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
+	for running {
+		// 	// 	//request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
+		// 	// 	response := new(stubs.Response)
+		select {
+		case <-ticker.C:
+			// 		fmt.Println("yo")
+			// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
 
-	// 		<-call.Done
-	// 		// 		//fmt.Println("before call", response.NewWorld)
-	// 		// 		//fmt.Println("before call", <-call.Done)
-	// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
-	// 		// 		//fmt.Println(d)
-	// 		// 		fmt.Println("after call ", response.CurrentTurn)
+			// 		<-call.Done
+			// 		// 		//fmt.Println("before call", response.NewWorld)
+			// 		// 		//fmt.Println("before call", <-call.Done)
+			// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
+			// 		// 		//fmt.Println(d)
+			// 		// 		fmt.Println("after call ", response.CurrentTurn)
 
-	// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
-	// 	default:
+			// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
+			// 	default:
 
-	// 	}
-	// }
+		}
+	}
 	<-call.Done
 	// send request
 	//extract

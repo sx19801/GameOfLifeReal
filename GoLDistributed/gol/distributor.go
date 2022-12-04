@@ -132,22 +132,24 @@ func distributor(p Params, c distributorChannels) {
 		// 	// 	response := new(stubs.Response)
 		select {
 		case <-ticker.C:
-			// 		fmt.Println("yo")
-			// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
+			fmt.Println("yo")
+			//<-call.Done
+		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
 
-			// 		<-call.Done
-			// 		// 		//fmt.Println("before call", response.NewWorld)
-			// 		// 		//fmt.Println("before call", <-call.Done)
-			// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
-			// 		// 		//fmt.Println(d)
-			// 		// 		fmt.Println("after call ", response.CurrentTurn)
+		// 		<-call.Done
+		// 		// 		//fmt.Println("before call", response.NewWorld)
+		// 		// 		//fmt.Println("before call", <-call.Done)
+		// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
+		// 		// 		//fmt.Println(d)
+		// 		// 		fmt.Println("after call ", response.CurrentTurn)
 
-			// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
-			// 	default:
+		// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
 
+		case <-call.Done:
+			running = false
 		}
 	}
-	<-call.Done
+
 	// send request
 	//extract
 	//finalWorld = gameOfLife(p, firstWorld, c)

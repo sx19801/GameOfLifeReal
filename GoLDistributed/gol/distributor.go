@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/rpc"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -114,21 +115,6 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 //		client.Call(stubs.GolHandler, request, response)
 //		return response.NewWorld
 //	}
-// func keyPress(p Params, responseWorld [][]byte, c distributorChannels, turn int, keyPresses <-chan rune) {
-//pausing := false
-// for {
-// 	select {
-// 	case <-keyPresses:
-// 		key := <-keyPresses
-// if key == 'p' {
-// 	if pausing {
-// 		pausing = false
-// 		// fmt.Println("Continuing execution from turn ", turn)
-// 		c.events <- StateChange{CompletedTurns: turn, NewState: 1}
-// 		break
-// 	}
-// 	pausing = true
-// 	c.events <- StateChange{CompletedTurns: turn, NewState: 0}
 
 // } else if key == 'q' {
 // 	fmt.Println("Printing PGM of current turn ")
@@ -147,6 +133,9 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 // 	}
 // }
 
+var wg sync.WaitGroup
+var pausing bool
+
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, key <-chan rune) {
 
@@ -164,8 +153,9 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	fmt.Println("Server: ", server)
 	client, _ := rpc.Dial("tcp", server)
 	defer client.Close()
-
 	turn := 0
+	running := true
+	pausing = false
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 	response := new(stubs.Response)
 
@@ -183,12 +173,32 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	}()
 
 	go func() {
-		for {
+		for running {
 			select {
 			case <-key:
 				if <-key == 's' {
 					outputWorld(p, response.NewWorld, c, turn)
+				} else if <-key == 'q' {
+					fmt.Println("closing client")
+					client.Close()
+					running = false
+					c.events <- StateChange{turn, Quitting}
+				} else if <-key == 'k' {
+
+					client.Call(stubs.KillServer, request, response)
+					//send kill request down channel to server
+					client.Close()
+					running = false
+				} else if <-key == 'p' {
+					if pausing {
+						pausing = false
+						wg.Done()
+						break
+					}
+					wg.Add(1)
+					pausing = true
 				}
+
 				//case <-keyboardpresses:
 			}
 		}
@@ -196,15 +206,22 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 
 	//go keyPress(p, response.NewWorld, c, turn, key)
 	//case for 0 turns
-	if p.Turns == 0 {
-		client.Call(stubs.GolHandler, request, response)
-	} else {
-		for turn < p.Turns {
+	for running {
+		if p.Turns == 0 {
 			client.Call(stubs.GolHandler, request, response)
-			request.World = response.NewWorld
-			turn++
-			//fmt.Println(turn)
+		} else {
+			for turn < p.Turns {
+				wg.Wait()
 
+				client.Call(stubs.GolHandler, request, response)
+				request.World = response.NewWorld
+				turn++
+
+				//fmt.Println(turn)
+				if !running {
+					break
+				}
+			}
 		}
 	}
 	//call := client.Go(stubs.GolHandler, request, response, nil)

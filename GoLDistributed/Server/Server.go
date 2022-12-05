@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+var ln net.Listener
+
 func makeByteArray(p stubs.Params) [][]byte {
 	newArray := make([][]byte, p.ImageWidth)
 	for i := 0; i < p.ImageWidth; i++ {
@@ -90,12 +92,18 @@ func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.R
 	return
 }
 
+func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response) (err error) {
+	ln.Close()
+	return
+}
+
 func main() {
 	pAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GameOfLifeOperations{})
 	listener, _ := net.Listen("tcp", ":"+*pAddr)
+	ln = listener
 	defer listener.Close()
 	rpc.Accept(listener)
 

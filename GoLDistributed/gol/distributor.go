@@ -137,6 +137,40 @@ func distributor(p Params, c distributorChannels) {
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 	response := new(stubs.Response)
 
+
+	func keyPress(p Params, world [][]byte, c distributorChannels, turn int, keyPresses <-chan rune) {
+		for {
+			select {
+			case <-keyPresses:
+				key := <-keyPresses
+				if key == 'p' {
+					if pausing {
+						pausing = false
+						// fmt.Println("Continuing execution from turn ", turn)
+						c.events <- StateChange{CompletedTurns: turn, NewState: 1}
+						break
+					}
+					pausing = true
+					c.events <- StateChange{CompletedTurns: turn, NewState: 0}
+	
+				} else if key == 'q' {
+					fmt.Println("Printing PGM of current turn ")
+					outputWorld(p, world, c, turn)
+					c.events <- StateChange{CompletedTurns: turn, NewState: 2}
+					time.Sleep(1200 * time.Millisecond)
+					c.events <- FinalTurnComplete{turn, calculateAliveCells(p, world, c)}
+	
+				} else if key == 's' {
+					fmt.Println("Printing PGM of current turn ")
+					outputWorld(p, world, c, turn)
+				}
+			default:
+				return
+			}
+		}
+	}
+
+
 	//client.Call(stubs.GolHandler, request, response)
 	//request.World = response.NewWorld
 	go func() {
@@ -148,6 +182,7 @@ func distributor(p Params, c distributorChannels) {
 			}
 		}
 	}()
+	go keyPress()
 	//case for 0 turns
 	if p.Turns == 0 {
 		client.Call(stubs.GolHandler, request, response)

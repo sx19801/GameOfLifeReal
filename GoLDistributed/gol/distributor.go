@@ -86,6 +86,16 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 }
 */
 
+func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
+	c.ioCommand <- 0
+	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(turn)
+	for i := 0; i < p.ImageWidth; i++ {
+		for j := 0; j < p.ImageHeight; j++ {
+			c.ioOutput <- world[i][j]
+		}
+	}
+}
+
 func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util.Cell {
 	aliveCells := make([]util.Cell, 0)
 	for x := 0; x < p.ImageWidth; x++ {
@@ -185,6 +195,8 @@ func distributor(p Params, c distributorChannels) {
 	//extract
 	//finalWorld = gameOfLife(p, firstWorld, c)
 	// TODO: Report the final state using FinalTurnCompleteEvent.
+	outputWorld(p, response.NewWorld, c, turn)
+
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, response.NewWorld, c)}
 
 	// Make sure that the Io has finished any output before exiting.

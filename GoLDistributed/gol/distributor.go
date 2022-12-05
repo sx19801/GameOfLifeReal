@@ -8,7 +8,6 @@ import (
 	"net/rpc"
 	"strconv"
 	"sync"
-	"time"
 )
 
 type distributorChannels struct {
@@ -146,7 +145,7 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	// TODO: Execute all turns of the Game of Life.
 	//finalWorld := makeByteArray(p)
 	//running := true
-	ticker := time.NewTicker(2 * time.Second)
+	// ticker := time.NewTicker(2 * time.Second)
 	//rpc call shit
 	server := "127.0.0.1:8030"
 	flag.Parse()
@@ -154,80 +153,86 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	client, _ := rpc.Dial("tcp", server)
 	defer client.Close()
 	turn := 0
-	running := true
+	// running := true
 	pausing = false
+
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 	response := new(stubs.Response)
 
 	//client.Call(stubs.GolHandler, request, response)
 	//request.World = response.NewWorld
 
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
-				//case <-keyboardpresses:
-			}
-		}
-	}()
+	//fmt.Println("before distributor calls broker")
+	//MAKE CALL TO BROKER
+	client.Call(stubs.BrokerHandler, request, response)
 
-	go func() {
-		for running {
-			select {
-			case <-key:
-				if <-key == 's' {
-					outputWorld(p, response.NewWorld, c, turn)
-				} else if <-key == 'q' {
-					fmt.Println("closing client")
-					client.Close()
-					running = false
-					c.events <- StateChange{turn, Quitting}
-				} else if <-key == 'k' {
+	//fmt.Println(response.NewWorld)
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <-ticker.C:
+	// 			//c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
+	// 			//case <-keyboardpresses:
+	// 		}
+	// 	}
+	// }()
 
-					client.Call(stubs.KillServer, request, response)
-					outputWorld(p, response.NewWorld, c, turn)
-					//send kill request down channel to server
-					client.Close()
-					running = false
-				} else if <-key == 'p' {
-					if pausing {
-						pausing = false
-						wg.Done()
-						fmt.Println("Continuing")
-						break
-					}
-					wg.Add(1)
-					outputWorld(p, response.NewWorld, c, turn)
+	// go func() {
+	// 	for running {
+	// 		select {
+	// 		case <-key:
+	// 			if <-key == 's' {
+	// 				outputWorld(p, response.NewWorld, c, turn)
+	// 			} else if <-key == 'q' {
+	// 				fmt.Println("closing client")
+	// 				client.Close()
+	// 				running = false
+	// 				c.events <- StateChange{turn, Quitting}
+	// 			} else if <-key == 'k' {
 
-					pausing = true
-				}
+	// 				client.Call(stubs.KillServer, request, response)
+	// 				outputWorld(p, response.NewWorld, c, turn)
+	// 				//send kill request down channel to server
+	// 				client.Close()
+	// 				running = false
+	// 			} else if <-key == 'p' {
+	// 				if pausing {
+	// 					pausing = false
+	// 					wg.Done()
+	// 					fmt.Println("Continuing")
+	// 					break
+	// 				}
+	// 				wg.Add(1)
+	// 				outputWorld(p, response.NewWorld, c, turn)
 
-				//case <-keyboardpresses:
-			}
-		}
-	}()
+	// 				pausing = true
+	// 			}
+
+	// 			//case <-keyboardpresses:
+	// 		}
+	// 	}
+	// }()
 
 	//go keyPress(p, response.NewWorld, c, turn, key)
 	//case for 0 turns
-	for running {
-		if p.Turns == 0 {
-			client.Call(stubs.GolHandler, request, response)
-		} else {
-			for turn < p.Turns {
-				wg.Wait()
+	// for running {
+	// 	if p.Turns == 0 {
+	// 		client.Call(stubs.GolHandler, request, response)
+	// 	} else {
+	// 		for turn < p.Turns {
+	// 			wg.Wait()
 
-				client.Call(stubs.GolHandler, request, response)
-				request.World = response.NewWorld
-				turn++
+	// 			client.Call(stubs.GolHandler, request, response)
+	// 			request.World = response.NewWorld
+	// 			turn++
 
-				//fmt.Println(turn)
-				if !running {
-					break
-				}
-			}
-		}
-	}
+	// 			//fmt.Println(turn)
+	// 			if !running {
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// }
 	//call := client.Go(stubs.GolHandler, request, response, nil)
 	// for turn < p.Turns {
 

@@ -29,40 +29,53 @@ func makeByteArray(p stubs.Params) [][]byte {
 // 	}
 // }
 
-func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels*/) [][]byte {
+func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChannels*/) [][]byte {
 	sum := 0
-	newWorld := makeByteArray(p)
-	for x := 0; x < p.ImageWidth; x++ {
-		for y := 0; y < p.ImageHeight; y++ {
-			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])) / 255
-			if world[y][x] == 255 {
-				if sum < 2 {
-					newWorld[y][x] = 0
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
-				} else if sum == 2 || sum == 3 {
-					newWorld[y][x] = 255
-				} else {
-					newWorld[y][x] = 0
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
+	segment := req.Segment
+	if req.P.Turns == 0 {
+		for x := 0; x < req.P.ImageWidth; x++ {
+			for y := req.SegStart; y < req.SegEnd; y++ {
+				if world[x][y] == 255 {
+					segment[x][y] = 255
 				}
-			} else {
-				if sum == 3 {
-					newWorld[y][x] = 255
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
+			}
+		}
+	} else {
+		for x := 0; x < req.P.ImageWidth; x++ {
+			for y := req.SegStart; y < req.SegEnd; y++ {
+				sum = (int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+
+					int(world[(x+req.P.ImageWidth)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+
+					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+
+					int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight)%req.P.ImageHeight]) +
+					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight)%req.P.ImageHeight]) +
+					int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight]) +
+					int(world[(x+req.P.ImageWidth)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight]) +
+					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight])) / 255
+				if world[x][y] == 255 {
+					if sum < 2 {
+						segment[x][y] = 0
+						// c.events <- CellFlipped{turn, util.Cell{x, y}}
+					} else if sum == 2 || sum == 3 {
+						segment[x][y] = 255
+					} else {
+						segment[x][y] = 0
+						// c.events <- CellFlipped{turn, util.Cell{x, y}}
+					}
 				} else {
-					newWorld[y][x] = 0
+					if sum == 3 {
+						segment[x][y] = 255
+						// c.events <- CellFlipped{turn, util.Cell{x, y}}
+					} else {
+						segment[x][y] = 0
+					}
 				}
 			}
 		}
 	}
-	return newWorld
+	return segment
 }
 
 /*
@@ -81,14 +94,16 @@ func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels
 type GameOfLifeOperations struct{}
 
 func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.Response) (err error) {
-
-	newWorld := req.World
-
+	//SHOULD BE SEGMENTS NOT WORLD BUT PASS WORLD ALSO TO DO COMPUTATION
+	world := req.World
+	newSegment := req.Segment
 	//only calculate next state if the requested turns are greater than 0
-	if req.P.Turns != 0 {
-		newWorld = calculateNextState(req.P, newWorld)
-	}
-	res.NewWorld = newWorld
+	//fmt.Println("the world", world)
+
+	newSegment = calculateNextState(req, world)
+	//fmt.Println("the segment", newSegment)
+	res.NewSegment = newSegment
+	//fmt.Println(res.NewSegment)
 	return
 }
 
@@ -98,7 +113,7 @@ func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response
 }
 
 func main() {
-	pAddr := flag.String("port", "8030", "Port to listen on")
+	pAddr := flag.String("port", "8031", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GameOfLifeOperations{})

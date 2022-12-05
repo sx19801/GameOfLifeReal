@@ -114,7 +114,7 @@ func distributor(p Params, c distributorChannels) {
 	loadFirstWorld(p, firstWorld, c)
 	// TODO: Execute all turns of the Game of Life.
 	//finalWorld := makeByteArray(p)
-	running := true
+	//running := true
 	ticker := time.NewTicker(2 * time.Second)
 	//rpc call shit
 	server := "127.0.0.1:8030"
@@ -122,33 +122,64 @@ func distributor(p Params, c distributorChannels) {
 	fmt.Println("Server: ", server)
 	client, _ := rpc.Dial("tcp", server)
 	defer client.Close()
+
+	turn := 0
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 	response := new(stubs.Response)
 
-	call := client.Go(stubs.GolHandler, request, response, nil)
-	//fmt.Println("p.turns", p.Turns)
-	for running {
-		// 	// 	//request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
-		// 	// 	response := new(stubs.Response)
-		select {
-		case <-ticker.C:
-			fmt.Println("yo")
-			//<-call.Done
-		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
+	//client.Call(stubs.GolHandler, request, response)
+	//request.World = response.NewWorld
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
+				//case <-keyboardpresses:
+			}
+		}
+	}()
+	//case for 0 turns
+	if p.Turns == 0 {
+		client.Call(stubs.GolHandler, request, response)
+	} else {
+		for turn < p.Turns {
+			client.Call(stubs.GolHandler, request, response)
+			request.World = response.NewWorld
+			turn++
+			//fmt.Println(turn)
 
-		// 		<-call.Done
-		// 		// 		//fmt.Println("before call", response.NewWorld)
-		// 		// 		//fmt.Println("before call", <-call.Done)
-		// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
-		// 		// 		//fmt.Println(d)
-		// 		// 		fmt.Println("after call ", response.CurrentTurn)
-
-		// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
-
-		case <-call.Done:
-			running = false
 		}
 	}
+	//call := client.Go(stubs.GolHandler, request, response, nil)
+	// for turn < p.Turns {
+
+	// 	response.NewWorld
+	// 	fmt.Println("after call")
+	// 	turn++
+	// }
+	//fmt.Println("p.turns", p.Turns)
+	// for running {
+	// //request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
+	// response := new(stubs.Response)
+	// 	select {
+	// 	case <-ticker.C:
+	// 		fmt.Println("yo")
+	// 		// 		//<-call.Done
+	// 		// 	// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
+
+	// 		// 	// 		<-call.Done
+	// 		// 	// 		// 		//fmt.Println("before call", response.NewWorld)
+	// 		// 	// 		// 		//fmt.Println("before call", <-call.Done)
+	// 		// 	// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
+	// 		// 	// 		// 		//fmt.Println(d)
+	// 		// 	// 		// 		fmt.Println("after call ", response.CurrentTurn)
+
+	// 		// 	// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
+
+	// 		// 	case <-call.Done:
+	// 		// 		running = false
+	// 	}
+	// }
 
 	// send request
 	//extract

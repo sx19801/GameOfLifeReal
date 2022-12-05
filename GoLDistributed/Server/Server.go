@@ -3,7 +3,6 @@ package main
 import (
 	"GameOfLifeReal/stubs"
 	"flag"
-	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
@@ -82,12 +81,10 @@ type GameOfLifeOperations struct{}
 func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.Response) (err error) {
 
 	newWorld := req.World
-	//fmt.Println("req.p.turns ", req.P.Turns)
-	for turn := 0; turn < req.P.Turns; turn++ {
+
+	//only calculate next state if the requested turns are greater than 0
+	if req.P.Turns != 0 {
 		newWorld = calculateNextState(req.P, newWorld)
-		res.NewWorld = newWorld
-		res.CurrentTurn = turn
-		fmt.Println(res.CurrentTurn)
 	}
 	res.NewWorld = newWorld
 	return

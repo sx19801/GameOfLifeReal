@@ -186,6 +186,7 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 				} else if <-key == 'k' {
 
 					client.Call(stubs.KillServer, request, response)
+					outputWorld(p, response.NewWorld, c, turn)
 					//send kill request down channel to server
 					client.Close()
 					running = false
@@ -193,9 +194,12 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 					if pausing {
 						pausing = false
 						wg.Done()
+						fmt.Println("Continuing")
 						break
 					}
 					wg.Add(1)
+					outputWorld(p, response.NewWorld, c, turn)
+
 					pausing = true
 				}
 

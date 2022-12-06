@@ -16,8 +16,9 @@ import (
 // You can manually check your counts by looking at CSVs provided in check/alive
 func TestAlive(t *testing.T) {
 	p := gol.Params{
-		Turns:       100000000,
-		Threads:     8,
+		Turns: 100000000,
+		//SHOULD BE 8
+		Threads:     1,
 		ImageWidth:  512,
 		ImageHeight: 512,
 	}

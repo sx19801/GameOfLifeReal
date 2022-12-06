@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net"
 	"net/rpc"
+	"strconv"
 	"time"
 )
 
@@ -16,58 +17,113 @@ var turn int
 
 type GameOfLifeOperations struct{}
 
-func makeSegmentByteArray(p stubs.Params /*start and end*/) [][]byte {
-	newArray := make([][]byte, p.ImageWidth)
-	for i := 0; i < p.ImageWidth; i++ {
-		newArray[i] = make([]byte, p.ImageHeight/p.Threads)
-	}
-	return newArray
-}
+// func makeSegmentByteArray(p stubs.Params /*start and end*/) [][]byte {
+// 	newArray := make([][]byte, p.ImageWidth)
+// 	for i := 0; i < p.ImageWidth; i++ {
+// 		newArray[i] = make([]byte, p.ImageHeight/p.Threads)
+// 	}
+// 	return newArray
+// }
 
 // func that makes a call to the Server; send segment and receive segment
 func callServer(world [][]byte, p stubs.Params) [][]byte {
-	server := "127.0.0.1:8031"
+	Servers := make([]string, p.Threads)
+	for i := 0; i < p.Threads; i++ {
+		server := "127.0.0.1:80" + strconv.Itoa(31+i)
+		flag.Parse()
+		fmt.Println("Server: ", server)
+		Servers[i] = server
+	}
+
 	flag.Parse()
-	fmt.Println("Server: ", server)
-	client, _ := rpc.Dial("tcp", server)
-	defer client.Close()
-	var newWorld [][]byte
+	fmt.Println("Server: ", Servers[0])
+	//client, _ := rpc.Dial("tcp", server)
+
 	turn = 0
 	//byte array for empty segment
-	segment := makeSegmentByteArray(p)
+	// segment := makeSegmentByteArray(p)
 	segmentHeight := p.ImageHeight / p.Threads
 
-	response := new(stubs.Response)
+	//response := new(stubs.Response)
+
+	clients := make([]*rpc.Client, p.Threads)
+	for i := 0; i < p.Threads; i++ {
+		clients[i], _ = rpc.Dial("tcp", Servers[i])
+
+	}
+
 	for turn < p.Turns {
+		calls := make([]*rpc.Call, p.Threads)
+		responses := make([]*stubs.Response, p.Threads)
 		for i := 0; i < p.Threads; i++ {
+			responses[i] = new(stubs.Response)
+		}
+
+		for i, client := range clients {
 			if i == p.Threads-1 {
-				//getting the segment to send
-				request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
-				call := client.Go(stubs.GolHandler, request, response, nil)
-				//fmt.Println("after client.go")
-				select {
-				case <-call.Done:
-					//fmt.Println(response.NewSegment)
-					newWorld = append(newWorld, response.NewSegment...)
-					world = newWorld
-					turn++
-				}
+				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
+				fmt.Println("after call")
 			} else {
-				request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: segmentHeight*i + 1, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: segmentHeight * (i + 1), P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
-				call := client.Go(stubs.GolHandler, request, response, nil)
-				//fmt.Println("after client.go")
-				select {
-				case <-call.Done:
-					//fmt.Println(response.NewSegment)
-					newWorld = append(newWorld, response.NewSegment...)
-					world = newWorld
-					turn++
-				}
+				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
+				fmt.Println("after call")
 			}
 		}
+		var newWorld [][]byte
+		for i, call := range calls {
+			<-call.Done
+			//fmt.Println("SEGMENT ", i, "  ", responses[i].NewSegment)
+			newWorld = append(newWorld, responses[i].NewSegment...)
+			//world = newWorld
+		}
+		world = newWorld
+		//fmt.Println(len(world))
+		turn++
 	}
+
+	// for turn < p.Turns {
+	// 	for i := 0; i < p.Threads; i++ {
+	// 		if i == p.Threads-1 {
+	// 			fmt.Println(Servers[i])
+	// 			client, _ := rpc.Dial("tcp", Servers[i])
+	// 			fmt.Println("after dial")
+	// 			//getting the segment to send
+	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+	// 			//fmt.Println("before client.go")
+	// 			call := client.Go(stubs.GolHandler, request, response, nil)
+	// 			fmt.Println("after call")
+	// 			//fmt.Println("after client.go")
+	// 			select {
+	// 			case <-call.Done:
+	// 				//fmt.Println(response.NewSegment)
+	// 				newWorld = append(newWorld, response.NewSegment...)
+	// 				world = newWorld
+	// 				turn++
+	// 			}
+	// 		} else {
+	// 			fmt.Println(Servers[i])
+	// 			client, _ := rpc.Dial("tcp", Servers[i])
+	// 			fmt.Println("after dial")
+	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: segmentHeight*i + 1, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+	// 			//fmt.Println("before client.go")
+	// 			call := client.Go(stubs.GolHandler, request, response, nil)
+	// 			fmt.Println("after call")
+	// 			//fmt.Println("after client.go")
+	// 			select {
+	// 			case <-call.Done:
+	// 				//fmt.Println(response.NewSegment)
+	// 				newWorld = append(newWorld, response.NewSegment...)
+	// 				world = newWorld
+	// 				turn++
+	// 			}
+	// 		}
+	// 		// defer client.Close()
+	// 	}
+	// }
+	//fmt.Println(len(world))
 	return world
 }
 
@@ -78,6 +134,7 @@ func (s *GameOfLifeOperations) BrokerProcessGol(req stubs.Request, res *stubs.Re
 	//call func that sends and receives segment
 
 	newWorld := callServer(req.World, req.P)
+	fmt.Println("after callserver")
 	//put segments back togther and send back updated world
 	res.NewWorld = newWorld
 	turn++
@@ -90,7 +147,9 @@ func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GameOfLifeOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
+	listener, err := net.Listen("tcp", "127.0.0.1:8030") //"127.0.0.1:"+*pAddr)
+	fmt.Println("127.0.0.1:" + *pAddr)
+	fmt.Println(err)
 	ln = listener
 	defer listener.Close()
 	rpc.Accept(listener)

@@ -3,6 +3,7 @@ package main
 import (
 	"GameOfLifeReal/stubs"
 	"flag"
+	"fmt"
 	"math/rand"
 	"net"
 	"net/rpc"
@@ -31,7 +32,13 @@ func makeByteArray(p stubs.Params) [][]byte {
 
 func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChannels*/) [][]byte {
 	sum := 0
-	segment := req.Segment
+	//segment := req.Segment
+	fmt.Println("END: ", req.SegEnd, " Start: ", req.SegStart)
+	segment := make([][]byte, req.SegEnd-req.SegStart)
+	for i := 0; i < req.SegEnd-req.SegStart; i++ {
+		segment[i] = make([]byte, req.P.ImageWidth)
+	}
+
 	if req.P.Turns == 0 {
 		for x := 0; x < req.P.ImageWidth; x++ {
 			for y := req.SegStart; y < req.SegEnd; y++ {
@@ -41,40 +48,42 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 			}
 		}
 	} else {
-		for x := 0; x < req.P.ImageWidth; x++ {
-			for y := req.SegStart; y < req.SegEnd; y++ {
-				sum = (int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+		for y := req.SegStart; y < req.SegEnd; y++ {
+			for x := 0; x < req.P.ImageWidth; x++ {
 
-					int(world[(x+req.P.ImageWidth)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+				sum = (int(world[(y+req.P.ImageHeight-1)%req.P.ImageHeight][(x+req.P.ImageWidth-1)%req.P.ImageWidth]) +
 
-					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight-1)%req.P.ImageHeight]) +
+					int(world[(y+req.P.ImageHeight-1)%req.P.ImageHeight][(x+req.P.ImageWidth)%req.P.ImageWidth]) +
 
-					int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight)%req.P.ImageHeight]) +
-					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight)%req.P.ImageHeight]) +
-					int(world[(x+req.P.ImageWidth-1)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight]) +
-					int(world[(x+req.P.ImageWidth)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight]) +
-					int(world[(x+req.P.ImageWidth+1)%req.P.ImageWidth][(y+req.P.ImageHeight+1)%req.P.ImageHeight])) / 255
-				if world[x][y] == 255 {
+					int(world[(y+req.P.ImageHeight-1)%req.P.ImageHeight][(x+req.P.ImageWidth+1)%req.P.ImageWidth]) +
+
+					int(world[(y+req.P.ImageHeight)%req.P.ImageHeight][(x+req.P.ImageWidth-1)%req.P.ImageWidth]) +
+					int(world[(y+req.P.ImageHeight)%req.P.ImageHeight][(x+req.P.ImageWidth+1)%req.P.ImageWidth]) +
+					int(world[(y+req.P.ImageHeight+1)%req.P.ImageHeight][(x+req.P.ImageWidth-1)%req.P.ImageWidth]) +
+					int(world[(y+req.P.ImageHeight+1)%req.P.ImageHeight][(x+req.P.ImageWidth)%req.P.ImageWidth]) +
+					int(world[(y+req.P.ImageHeight+1)%req.P.ImageHeight][(x+req.P.ImageWidth+1)%req.P.ImageWidth])) / 255
+				if world[y][x] == 255 {
 					if sum < 2 {
-						segment[x][y] = 0
+						segment[y-req.SegStart][x] = 0
 						// c.events <- CellFlipped{turn, util.Cell{x, y}}
 					} else if sum == 2 || sum == 3 {
-						segment[x][y] = 255
+						segment[y-req.SegStart][x] = 255
 					} else {
-						segment[x][y] = 0
+						segment[y-req.SegStart][x] = 0
 						// c.events <- CellFlipped{turn, util.Cell{x, y}}
 					}
 				} else {
 					if sum == 3 {
-						segment[x][y] = 255
+						segment[y-req.SegStart][x] = 255
 						// c.events <- CellFlipped{turn, util.Cell{x, y}}
 					} else {
-						segment[x][y] = 0
+						segment[y-req.SegStart][x] = world[y][x]
 					}
 				}
 			}
 		}
 	}
+	fmt.Println("WASSUP :", len(segment))
 	return segment
 }
 
@@ -91,16 +100,30 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 		return aliveCells
 	}
 */
+
+var ports = make([]int, 16)
+var i int
+
+func makePorts(p stubs.Params) {
+	j := 0
+	for j < p.Threads {
+		k := 30 + j
+		ports[j] = k
+		j++
+	}
+}
+
 type GameOfLifeOperations struct{}
 
 func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.Response) (err error) {
 	//SHOULD BE SEGMENTS NOT WORLD BUT PASS WORLD ALSO TO DO COMPUTATION
+	makePorts(req.P)
 	world := req.World
-	newSegment := req.Segment
+
 	//only calculate next state if the requested turns are greater than 0
 	//fmt.Println("the world", world)
 
-	newSegment = calculateNextState(req, world)
+	newSegment := calculateNextState(req, world)
 	//fmt.Println("the segment", newSegment)
 	res.NewSegment = newSegment
 	//fmt.Println(res.NewSegment)
@@ -111,14 +134,18 @@ func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response
 	ln.Close()
 	return
 }
-
 func main() {
-	pAddr := flag.String("port", "8031", "Port to listen on")
+	// +strconv.Itoa(i)
+	pAddr := flag.String("port", "8050", "Port to listen on")
+	//brokerAddr := flag.String("port", "8030", "Port to listen on")
+	//client, _ := rpc.Dial("tcp", *brokerAddr)
+
+	//brokerAddr := flag.String("port", "8030", "Port to listen on")
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GameOfLifeOperations{})
-	listener, _ := net.Listen("tcp", ":"+*pAddr)
-	ln = listener
+	listener, _ := net.Listen("tcp", "127.0.0.1:"+*pAddr)
+	fmt.Println(*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)
 

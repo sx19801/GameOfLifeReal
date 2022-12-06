@@ -8,6 +8,7 @@ import (
 	"net/rpc"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type distributorChannels struct {
@@ -134,6 +135,7 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 
 var wg sync.WaitGroup
 var pausing bool
+var running bool
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, key <-chan rune) {
@@ -153,7 +155,7 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	client, _ := rpc.Dial("tcp", server)
 	defer client.Close()
 	turn := 0
-	// running := true
+	// var segment [][]byte
 	pausing = false
 
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
@@ -164,111 +166,70 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 
 	//fmt.Println("before distributor calls broker")
 	//MAKE CALL TO BROKER
-	client.Call(stubs.BrokerHandler, request, response)
+	// client.Call(stubs.BrokerHandler, request, response)
 
 	//fmt.Println(response.NewWorld)
-	// go func() {
-	// 	for {
-	// 		select {
-	// 		case <-ticker.C:
-	// 			//c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
-	// 			//case <-keyboardpresses:
-	// 		}
-	// 	}
-	// }()
 
-	// go func() {
-	// 	for running {
-	// 		select {
-	// 		case <-key:
-	// 			if <-key == 's' {
-	// 				outputWorld(p, response.NewWorld, c, turn)
-	// 			} else if <-key == 'q' {
-	// 				fmt.Println("closing client")
-	// 				client.Close()
-	// 				running = false
-	// 				c.events <- StateChange{turn, Quitting}
-	// 			} else if <-key == 'k' {
+	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
 
-	// 				client.Call(stubs.KillServer, request, response)
-	// 				outputWorld(p, response.NewWorld, c, turn)
-	// 				//send kill request down channel to server
-	// 				client.Close()
-	// 				running = false
-	// 			} else if <-key == 'p' {
-	// 				if pausing {
-	// 					pausing = false
-	// 					wg.Done()
-	// 					fmt.Println("Continuing")
-	// 					break
-	// 				}
-	// 				wg.Add(1)
-	// 				outputWorld(p, response.NewWorld, c, turn)
+				client.Call(stubs.AliveCells, request, response)
 
-	// 				pausing = true
-	// 			}
+				if response.CurrentTurn != 0 {
+					a := len(calculateAliveCells(p, response.GlobalWorld, c))
+					c.events <- AliveCellsCount{response.CurrentTurn, a}
+				}
+			case <-key:
+				if <-key == 's' {
+					outputWorld(p, response.NewWorld, c, turn)
+				} else if <-key == 'q' {
+					fmt.Println("closing client")
+					client.Close()
+					running = false
+					c.events <- StateChange{turn, Quitting}
+				} else if <-key == 'k' {
 
-	// 			//case <-keyboardpresses:
-	// 		}
-	// 	}
-	// }()
+					client.Call(stubs.KillServer, request, response)
+					outputWorld(p, response.NewWorld, c, turn)
+					//send kill request down channel to server
+					client.Close()
+					running = false
+				} else if <-key == 'p' {
+					if pausing {
+						pausing = false
+						wg.Done()
+						fmt.Println("Continuing")
+						break
+					}
+					wg.Add(1)
+					outputWorld(p, response.NewWorld, c, turn)
 
-	//go keyPress(p, response.NewWorld, c, turn, key)
-	//case for 0 turns
-	// for running {
-	// 	if p.Turns == 0 {
-	// 		client.Call(stubs.GolHandler, request, response)
-	// 	} else {
-	// 		for turn < p.Turns {
-	// 			wg.Wait()
+					pausing = true
+				}
+				// fmt.Println(response.CurrentTurn)
+				//fmt.Println(len(response.GlobalWorld))
+				//fmt.Println(len(calculateAliveCells(p, response.GlobalWorld, c)))
+				// a := len(calculateAliveCells(p, response.GlobalWorld, c))
+				// c.events <- AliveCellsCount{response.CurrentTurn, a}
+				//case <-keyboardpresses:
 
-	// 			client.Call(stubs.GolHandler, request, response)
-	// 			request.World = response.NewWorld
-	// 			turn++
-
-	// 			//fmt.Println(turn)
-	// 			if !running {
-	// 				break
-	// 			}
-	// 		}
-	// 	}
-	// }
-	//call := client.Go(stubs.GolHandler, request, response, nil)
-	// for turn < p.Turns {
-
-	// 	response.NewWorld
-	// 	fmt.Println("after call")
-	// 	turn++
-	// }
-	//fmt.Println("p.turns", p.Turns)
-	// for running {
-	// //request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
-	// response := new(stubs.Response)
-	// 	select {
-	// 	case <-ticker.C:
-	// 		fmt.Println("yo")
-	// 		// 		//<-call.Done
-	// 		// 	// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
-
-	// 		// 	// 		<-call.Done
-	// 		// 	// 		// 		//fmt.Println("before call", response.NewWorld)
-	// 		// 	// 		// 		//fmt.Println("before call", <-call.Done)
-	// 		// 	// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
-	// 		// 	// 		// 		//fmt.Println(d)
-	// 		// 	// 		// 		fmt.Println("after call ", response.CurrentTurn)
-
-	// 		// 	// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
-
-	// 		// 	case <-call.Done:
-	// 		// 		running = false
-	// 	}
-	// }
+			}
+		}
+	}()
+	fmt.Println("before client call in distributor")
+	client.Call(stubs.BrokerHandler, request, response)
+	fmt.Println("after client call in distributor")
 
 	// send request
 	//extract
 	//finalWorld = gameOfLife(p, firstWorld, c)
 	// TODO: Report the final state using FinalTurnCompleteEvent.
+	fmt.Println(len(response.NewWorld))
 	outputWorld(p, response.NewWorld, c, turn)
+	fmt.Println("after output world")
 
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, response.NewWorld, c)}
 
@@ -279,5 +240,6 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	c.events <- StateChange{p.Turns, Quitting}
 
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
+	fmt.Println("before close")
 	close(c.events)
 }

@@ -135,7 +135,6 @@ func calculateAliveCells(p Params, world [][]byte, c distributorChannels) []util
 
 var wg sync.WaitGroup
 var pausing bool
-var running bool
 
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, key <-chan rune) {
@@ -147,7 +146,7 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	// TODO: Execute all turns of the Game of Life.
 	//finalWorld := makeByteArray(p)
 	//running := true
-	// ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(2 * time.Second)
 	//rpc call shit
 	server := "127.0.0.1:8030"
 	flag.Parse()
@@ -155,33 +154,27 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	client, _ := rpc.Dial("tcp", server)
 	defer client.Close()
 	turn := 0
-	// var segment [][]byte
+	running := true
 	pausing = false
-
 	request := stubs.Request{World: firstWorld, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 	response := new(stubs.Response)
 
 	//client.Call(stubs.GolHandler, request, response)
 	//request.World = response.NewWorld
 
-	//fmt.Println("before distributor calls broker")
-	//MAKE CALL TO BROKER
-	// client.Call(stubs.BrokerHandler, request, response)
-
-	//fmt.Println(response.NewWorld)
+	// go func() {
+	// 	for {
+	// 		select {
+	// 		case <-ticker.C:
+	// 			c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
+	// 			//case <-keyboardpresses:
+	// 		}
+	// 	}
+	// }()
 
 	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		for {
+		for running {
 			select {
-			case <-ticker.C:
-
-				client.Call(stubs.AliveCells, request, response)
-
-				if response.CurrentTurn != 0 {
-					a := len(calculateAliveCells(p, response.GlobalWorld, c))
-					c.events <- AliveCellsCount{response.CurrentTurn, a}
-				}
 			case <-key:
 				if <-key == 's' {
 					outputWorld(p, response.NewWorld, c, turn)
@@ -209,27 +202,82 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 
 					pausing = true
 				}
-				// fmt.Println(response.CurrentTurn)
-				//fmt.Println(len(response.GlobalWorld))
-				//fmt.Println(len(calculateAliveCells(p, response.GlobalWorld, c)))
-				// a := len(calculateAliveCells(p, response.GlobalWorld, c))
-				// c.events <- AliveCellsCount{response.CurrentTurn, a}
-				//case <-keyboardpresses:
 
+				//case <-keyboardpresses:
 			}
 		}
 	}()
-	fmt.Println("before client call in distributor")
-	client.Call(stubs.BrokerHandler, request, response)
-	fmt.Println("after client call in distributor")
+
+	//go keyPress(p, response.NewWorld, c, turn, key)
+	//case for 0 turns
+	for running {
+		if p.Turns == 0 {
+			client.Call(stubs.GolHandler, request, response)
+			running = false
+		} else {
+			for turn < p.Turns {
+				wg.Wait()
+
+				client.Call(stubs.GolHandler, request, response)
+				request.World = response.NewWorld
+				fmt.Println(turn, len(calculateAliveCells(p, response.NewWorld, c)))
+				go func() {
+					for {
+						select {
+						case <-ticker.C:
+
+							c.events <- AliveCellsCount{turn, len(calculateAliveCells(p, response.NewWorld, c))}
+							//case <-keyboardpresses:
+						}
+					}
+				}()
+
+				turn++
+
+				//fmt.Println(turn)
+				if !running {
+					break
+				}
+			}
+			running = false
+		}
+	}
+	//call := client.Go(stubs.GolHandler, request, response, nil)
+	// for turn < p.Turns {
+
+	// 	response.NewWorld
+	// 	fmt.Println("after call")
+	// 	turn++
+	// }
+	//fmt.Println("p.turns", p.Turns)
+	// for running {
+	// //request := stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}
+	// response := new(stubs.Response)
+	// 	select {
+	// 	case <-ticker.C:
+	// 		fmt.Println("yo")
+	// 		// 		//<-call.Done
+	// 		// 	// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, response.CurrentTurn}}, response)
+
+	// 		// 	// 		<-call.Done
+	// 		// 	// 		// 		//fmt.Println("before call", response.NewWorld)
+	// 		// 	// 		// 		//fmt.Println("before call", <-call.Done)
+	// 		// 	// 		// 		client.Call(stubs.GolHandler, stubs.Request{World: response.NewWorld, P: stubs.Params{p.ImageHeight, p.ImageWidth, p.Threads, p.Turns}}, response)
+	// 		// 	// 		// 		//fmt.Println(d)
+	// 		// 	// 		// 		fmt.Println("after call ", response.CurrentTurn)
+
+	// 		// 	// 		// 		//c.events <- AliveCellsCount{response.CurrentTurn, len(calculateAliveCells(p, response.NewWorld, c))}
+
+	// 		// 	case <-call.Done:
+	// 		// 		running = false
+	// 	}
+	// }
 
 	// send request
 	//extract
 	//finalWorld = gameOfLife(p, firstWorld, c)
 	// TODO: Report the final state using FinalTurnCompleteEvent.
-	fmt.Println(len(response.NewWorld))
 	outputWorld(p, response.NewWorld, c, turn)
-	fmt.Println("after output world")
 
 	c.events <- FinalTurnComplete{p.Turns, calculateAliveCells(p, response.NewWorld, c)}
 
@@ -240,6 +288,5 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	c.events <- StateChange{p.Turns, Quitting}
 
 	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
-	fmt.Println("before close")
 	close(c.events)
 }

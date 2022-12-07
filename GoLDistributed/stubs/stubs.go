@@ -3,7 +3,7 @@ package stubs
 var GolHandler = "GameOfLifeOperations.ProcessGameOfLife"
 var KillServer = "GameOfLifeOperations.KillProcess"
 var BrokerHandler = "GameOfLifeOperations.BrokerProcessGol"
-var AliveCells = "GameOfLifeOperations.AliveCellsTicker"
+var AliveCells = "AliveCellsWorldOperations.AliveCellsTicker"
 
 type Params struct {
 	Turns       int

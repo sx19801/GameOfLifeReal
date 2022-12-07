@@ -33,7 +33,7 @@ func makeByteArray(p stubs.Params) [][]byte {
 func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChannels*/) [][]byte {
 	sum := 0
 	//segment := req.Segment
-	fmt.Println("END: ", req.SegEnd, " Start: ", req.SegStart)
+	//fmt.Println("END: ", req.SegEnd, " Start: ", req.SegStart)
 	segment := make([][]byte, req.SegEnd-req.SegStart)
 	for i := 0; i < req.SegEnd-req.SegStart; i++ {
 		segment[i] = make([]byte, req.P.ImageWidth)
@@ -83,7 +83,7 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 			}
 		}
 	}
-	fmt.Println("WASSUP :", len(segment))
+	//fmt.Println("WASSUP :", len(segment))
 	return segment
 }
 
@@ -119,12 +119,12 @@ func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.R
 	//SHOULD BE SEGMENTS NOT WORLD BUT PASS WORLD ALSO TO DO COMPUTATION
 	makePorts(req.P)
 	world := req.World
-	fmt.Println(world)
+	//fmt.Println(world)
 	//only calculate next state if the requested turns are greater than 0
 	//fmt.Println("the world", world)
 
 	newSegment := calculateNextState(req, world)
-	fmt.Println(newSegment)
+	//fmt.Println(newSegment)
 	//fmt.Println("the segment", newSegment)
 	res.NewSegment = newSegment
 	//fmt.Println(res.NewSegment)

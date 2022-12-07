@@ -64,12 +64,12 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				fmt.Println("after call")
+				//fmt.Println("after call")
 			} else {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: segmentHeight * (i + 1), P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				fmt.Println("after call")
+				//fmt.Println("after call")
 			}
 		}
 		var newWorld [][]byte
@@ -130,11 +130,11 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 func (s *GameOfLifeOperations) BrokerProcessGol(req stubs.Request, res *stubs.Response) (err error) {
 	//call the split world func
 	turn := 0
-	fmt.Println("inside exported brokerprocess before server call")
+	//fmt.Println("inside exported brokerprocess before server call")
 	//call func that sends and receives segment
 
 	newWorld := callServer(req.World, req.P)
-	fmt.Println("after callserver")
+	//fmt.Println("after callserver")
 	//put segments back togther and send back updated world
 	res.NewWorld = newWorld
 	turn++

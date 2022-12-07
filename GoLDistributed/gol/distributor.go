@@ -38,55 +38,6 @@ func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
 	}
 }
 
-/*
-func calculateNextState(p Params, world [][]byte, c distributorChannels, turn int) [][]byte {
-	sum := 0
-	newWorld := make([][]byte, p.ImageWidth)
-	for i := 0; i < p.ImageWidth; i++ {
-		newWorld[i] = make([]byte, p.ImageHeight)
-	}
-	for x := 0; x < p.ImageWidth; x++ {
-		for y := 0; y < p.ImageHeight; y++ {
-			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
-				int(world[(y+p.ImageHeight+1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth])) / 255
-			if world[y][x] == 255 {
-				if sum < 2 {
-					newWorld[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				} else if sum == 2 || sum == 3 {
-					newWorld[y][x] = 255
-				} else {
-					newWorld[y][x] = 0
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				}
-			} else {
-				if sum == 3 {
-					newWorld[y][x] = 255
-					c.events <- CellFlipped{turn, util.Cell{x, y}}
-				} else {
-					newWorld[y][x] = 0
-				}
-			}
-		}
-	}
-	return newWorld
-}
-*/
-/*func gameOfLife(p Params, world [][]byte, c distributorChannels) [][]byte {
-	for turn := 0; turn < p.Turns; turn++ {
-		world = calculateNextState(p, world, c, turn)
-		c.events <- TurnComplete{turn}
-	}
-	return world
-}
-*/
-
 func outputWorld(p Params, world [][]byte, c distributorChannels, turn int) {
 	c.ioCommand <- 0
 	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth) + "x" + strconv.Itoa(turn)
@@ -184,7 +135,8 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 				}
 			case <-key:
 				if <-key == 's' {
-					outputWorld(p, response.NewWorld, c, turn)
+					//make client call
+					outputWorld(p, response.NewWorld, c, p.Turns)
 				} else if <-key == 'q' {
 					fmt.Println("closing client")
 					client.Close()

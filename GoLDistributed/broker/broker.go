@@ -17,6 +17,14 @@ var turn int
 
 type GameOfLifeOperations struct{}
 
+// func makeSegmentByteArray(p stubs.Params /*start and end*/) [][]byte {
+// 	newArray := make([][]byte, p.ImageWidth)
+// 	for i := 0; i < p.ImageWidth; i++ {
+// 		newArray[i] = make([]byte, p.ImageHeight/p.Threads)
+// 	}
+// 	return newArray
+// }
+
 // func that makes a call to the Server; send segment and receive segment
 func callServer(world [][]byte, p stubs.Params) [][]byte {
 	Servers := make([]string, p.Threads)
@@ -75,6 +83,47 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 		//fmt.Println(len(world))
 		turn++
 	}
+
+	// for turn < p.Turns {
+	// 	for i := 0; i < p.Threads; i++ {
+	// 		if i == p.Threads-1 {
+	// 			fmt.Println(Servers[i])
+	// 			client, _ := rpc.Dial("tcp", Servers[i])
+	// 			fmt.Println("after dial")
+	// 			//getting the segment to send
+	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+	// 			//fmt.Println("before client.go")
+	// 			call := client.Go(stubs.GolHandler, request, response, nil)
+	// 			fmt.Println("after call")
+	// 			//fmt.Println("after client.go")
+	// 			select {
+	// 			case <-call.Done:
+	// 				//fmt.Println(response.NewSegment)
+	// 				newWorld = append(newWorld, response.NewSegment...)
+	// 				world = newWorld
+	// 				turn++
+	// 			}
+	// 		} else {
+	// 			fmt.Println(Servers[i])
+	// 			client, _ := rpc.Dial("tcp", Servers[i])
+	// 			fmt.Println("after dial")
+	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: segmentHeight*i + 1, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+	// 			//fmt.Println("before client.go")
+	// 			call := client.Go(stubs.GolHandler, request, response, nil)
+	// 			fmt.Println("after call")
+	// 			//fmt.Println("after client.go")
+	// 			select {
+	// 			case <-call.Done:
+	// 				//fmt.Println(response.NewSegment)
+	// 				newWorld = append(newWorld, response.NewSegment...)
+	// 				world = newWorld
+	// 				turn++
+	// 			}
+	// 		}
+	// 		// defer client.Close()
+	// 	}
+	// }
+	//fmt.Println(len(world))
 	return world
 }
 

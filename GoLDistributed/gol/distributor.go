@@ -66,11 +66,9 @@ var pausing bool
 // distributor divides the work between workers and interacts with other goroutines.
 func distributor(p Params, c distributorChannels, key <-chan rune) {
 
-	// TODO: Create a 2D slice to store the world.
 	firstWorld := makeByteArray(p)
-	// Get initial world as input from io channel and populate
+
 	loadFirstWorld(p, firstWorld, c)
-	// TODO: Execute all turns of the Game of Life.
 
 	ticker := time.NewTicker(2 * time.Second)
 
@@ -114,12 +112,12 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 					if pausing {
 						pausing = false
 						wg.Done()
-						fmt.Println("Continuing")
+
 						break
 					}
 					wg.Add(1)
 					outputWorld(p, response.NewWorld, c, turn)
-
+					fmt.Println("Pausing")
 					pausing = true
 				}
 			}
@@ -127,22 +125,16 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 	}()
 
 	for running {
-
 		if p.Turns == 0 {
-
 			client.Call(stubs.GolHandler, request, response)
 			running = false
 			fmt.Println("after wait")
 		} else {
-
 			for turn < p.Turns {
-
 				wg.Wait()
-
 				client.Call(stubs.GolHandler, request, response)
 				request.World = response.NewWorld
 				turn++
-
 				if !running {
 					break
 				}
@@ -160,6 +152,5 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 
 	c.events <- StateChange{p.Turns, Quitting}
 
-	// Close the channel to stop the SDL goroutine gracefully. Removing may cause deadlock.
 	close(c.events)
 }

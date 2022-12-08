@@ -19,21 +19,11 @@ func makeByteArray(p stubs.Params) [][]byte {
 	return newArray
 }
 
-// func loadFirstWorld(p Params, firstWorld [][]byte, c distributorChannels) {
-// 	c.ioCommand <- 1
-// 	c.ioFilename <- strconv.Itoa(p.ImageHeight) + "x" + strconv.Itoa(p.ImageWidth)
-// 	for i := 0; i < p.ImageWidth; i++ {
-// 		for j := 0; j < p.ImageHeight; j++ {
-// 			firstWorld[i][j] = <-c.ioInput
-// 		}
-// 	}
-// }
-
-func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels*/) [][]byte {
+func calculateNextState(p stubs.Params, world [][]byte) [][]byte {
 	sum := 0
 	newWorld := makeByteArray(p)
-	for y := 0; y < p.ImageWidth; y++ {
-		for x := 0; x < p.ImageHeight; x++ {
+	for x := 0; x < p.ImageWidth; x++ {
+		for y := 0; y < p.ImageHeight; y++ {
 			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
 				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth)%p.ImageWidth]) +
 				int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth+1)%p.ImageWidth]) +
@@ -45,19 +35,19 @@ func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels
 			if world[y][x] == 255 {
 				if sum < 2 {
 					newWorld[y][x] = 0
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
+
 				} else if sum == 2 || sum == 3 {
 					newWorld[y][x] = 255
 				} else {
 					newWorld[y][x] = 0
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
+
 				}
 			} else {
 				if sum == 3 {
 					newWorld[y][x] = 255
-					// c.events <- CellFlipped{turn, util.Cell{x, y}}
+
 				} else {
-					newWorld[y][x] = world[y][x]
+					newWorld[y][x] = 0
 				}
 			}
 		}
@@ -65,26 +55,12 @@ func calculateNextState(p stubs.Params, world [][]byte /*, c distributorChannels
 	return newWorld
 }
 
-/*
-	func calculateAliveCells(p stubs.Params, world [][]byte) []util.Cell {
-		aliveCells := make([]util.Cell, 0)
-		for x := 0; x < p.ImageWidth; x++ {
-			for y := 0; y < p.ImageHeight; y++ {
-				if world[y][x] == 255 {
-					aliveCells = append(aliveCells, util.Cell{x, y})
-				}
-			}
-		}
-		return aliveCells
-	}
-*/
 type GameOfLifeOperations struct{}
 
 func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.Response) (err error) {
 
 	newWorld := req.World
 
-	//only calculate next state if the requested turns are greater than 0
 	if req.P.Turns != 0 {
 		newWorld = calculateNextState(req.P, newWorld)
 	}

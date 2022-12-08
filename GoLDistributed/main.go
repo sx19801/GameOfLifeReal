@@ -1,7 +1,5 @@
 package main
 
-//yo
-
 import (
 	"GameOfLifeReal/gol"
 	"GameOfLifeReal/sdl"
@@ -18,7 +16,7 @@ func main() {
 	flag.IntVar(
 		&params.Threads,
 		"t",
-		3,
+		8,
 		"Specify the number of worker threads to use. Defaults to 8.")
 
 	flag.IntVar(

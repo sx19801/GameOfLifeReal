@@ -3,6 +3,7 @@ package sdl
 import (
 	"GameOfLifeReal/gol"
 	"fmt"
+
 	"github.com/veandco/go-sdl2/sdl"
 )
 

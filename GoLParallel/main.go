@@ -1,7 +1,5 @@
 package main
 
-//yo
-
 import (
 	"flag"
 	"fmt"

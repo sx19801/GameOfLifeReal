@@ -38,9 +38,7 @@ sdlLoop:
 			switch e := event.(type) {
 			case gol.CellFlipped:
 				w.FlipPixel(e.Cell.X, e.Cell.Y)
-				//fmt.Println("cell flipped")
 			case gol.TurnComplete:
-				//fmt.Println("turn completed") /////////////////////////////////////////////////
 				w.RenderFrame()
 			case gol.FinalTurnComplete:
 				w.Destroy()

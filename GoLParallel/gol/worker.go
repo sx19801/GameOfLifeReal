@@ -16,8 +16,7 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 	for i := 0; i < end-start; i++ {
 		newSegment[i] = make([]byte, p.ImageWidth)
 	}
-	//for x := 0; x < p.ImageWidth; x++ {
-	//	for y := 0; y < p.ImageHeight; y++ {
+
 	for x := 0; x < p.ImageWidth; x++ {
 		for y := start; y < end; y++ {
 			sum = (int(world[(y+p.ImageHeight-1)%p.ImageHeight][(x+p.ImageWidth-1)%p.ImageWidth]) +
@@ -49,7 +48,7 @@ func calculateNextState(p Params, world [][]byte, c distributorChannels, turn in
 			newSegment[y-start][x] = newWorld[y][x]
 		}
 	}
-	//return worldSegment{newWorld, 0, p.ImageHeight}
+
 	channel <- newSegment
 }
 

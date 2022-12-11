@@ -32,9 +32,9 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 	Servers := make([]string, p.Threads)
 	for i := 0; i < p.Threads; i++ {
 		if i == 0 {
-			ip = "3.80.92.80:"
+			ip = "172.31.16.114:"
 		} else if i == 1 {
-			ip = "54.152.25.156:"
+			ip = "172.31.27.77:"
 		} else if i == 2 {
 			ip = "54.234.171.12:"
 		}

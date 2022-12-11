@@ -32,7 +32,7 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 	Servers := make([]string, p.Threads)
 	for i := 0; i < p.Threads; i++ {
 		if i == 0 {
-			ip = "3.80.92.80:"
+			ip = "54.90.170.226:"
 		} else if i == 1 {
 			ip = "54.152.25.156:"
 		} else if i == 2 {
@@ -45,7 +45,7 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 	}
 
 	flag.Parse()
-	fmt.Println("Server: ", Servers[0])
+	//fmt.Println("Server: ", Servers[0])
 	//client, _ := rpc.Dial("tcp", server)
 
 	turn = 0
@@ -73,12 +73,12 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				fmt.Println("after call")
+				//fmt.Println("after call")
 			} else {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: segmentHeight * (i + 1), P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
 				//fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				fmt.Println("after call")
+				//fmt.Println("after call")
 			}
 		}
 		var newWorld [][]byte
@@ -93,57 +93,17 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 		turn++
 	}
 
-	// for turn < p.Turns {
-	// 	for i := 0; i < p.Threads; i++ {
-	// 		if i == p.Threads-1 {
-	// 			fmt.Println(Servers[i])
-	// 			client, _ := rpc.Dial("tcp", Servers[i])
-	// 			fmt.Println("after dial")
-	// 			//getting the segment to send
-	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
-	// 			//fmt.Println("before client.go")
-	// 			call := client.Go(stubs.GolHandler, request, response, nil)
-	// 			fmt.Println("after call")
-	// 			//fmt.Println("after client.go")
-	// 			select {
-	// 			case <-call.Done:
-	// 				//fmt.Println(response.NewSegment)
-	// 				newWorld = append(newWorld, response.NewSegment...)
-	// 				world = newWorld
-	// 				turn++
-	// 			}
-	// 		} else {
-	// 			fmt.Println(Servers[i])
-	// 			client, _ := rpc.Dial("tcp", Servers[i])
-	// 			fmt.Println("after dial")
-	// 			request := stubs.Request{World: world, Segment: segment, SegStart: segmentHeight * i, SegEnd: segmentHeight*i + 1, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
-	// 			//fmt.Println("before client.go")
-	// 			call := client.Go(stubs.GolHandler, request, response, nil)
-	// 			fmt.Println("after call")
-	// 			//fmt.Println("after client.go")
-	// 			select {
-	// 			case <-call.Done:
-	// 				//fmt.Println(response.NewSegment)
-	// 				newWorld = append(newWorld, response.NewSegment...)
-	// 				world = newWorld
-	// 				turn++
-	// 			}
-	// 		}
-	// 		// defer client.Close()
-	// 	}
-	// }
-	//fmt.Println(len(world))
 	return world
 }
 
 func (s *GameOfLifeOperations) BrokerProcessGol(req stubs.Request, res *stubs.Response) (err error) {
 	//call the split world func
 	turn := 0
-	fmt.Println("inside exported brokerprocess before server call")
+	//fmt.Println("inside exported brokerprocess before server call")
 	//call func that sends and receives segment
 
 	newWorld := callServer(req.World, req.P)
-	fmt.Println("after callserver")
+	//fmt.Println("after callserver")
 	//put segments back togther and send back updated world
 	res.NewWorld = newWorld
 	turn++

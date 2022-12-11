@@ -33,8 +33,8 @@ func makeByteArray(p stubs.Params) [][]byte {
 func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChannels*/) [][]byte {
 	sum := 0
 	//segment := req.Segment
-	fmt.Println("yo")
-	fmt.Println("END: ", req.SegEnd, " Start: ", req.SegStart)
+	//fmt.Println("yo")
+	//fmt.Println("End: ", req.SegEnd, " Start: ", req.SegStart)
 	segment := make([][]byte, req.SegEnd-req.SegStart)
 	for i := 0; i < req.SegEnd-req.SegStart; i++ {
 		segment[i] = make([]byte, req.P.ImageWidth)
@@ -84,7 +84,7 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 			}
 		}
 	}
-	fmt.Println("WASSUP :", len(segment))
+	//fmt.Println("Length of Segment :", len(segment))
 	return segment
 }
 

@@ -29,7 +29,7 @@ type GameOfLifeOperations struct{}
 func callServer(world [][]byte, p stubs.Params) [][]byte {
 	Servers := make([]string, p.Threads)
 	for i := 0; i < p.Threads; i++ {
-		server := "172.25.106.102:80" + strconv.Itoa(31+i)
+		server := "54.86.55.240:80" + strconv.Itoa(31+i)
 		flag.Parse()
 		fmt.Println("Server: ", server)
 		Servers[i] = server

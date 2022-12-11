@@ -137,7 +137,7 @@ func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response
 }
 func main() {
 	// +strconv.Itoa(i)
-	pAddr := flag.String("ip", "127.0.0.1:8050", "Ip and Port to listen on")
+	pAddr := flag.String("ip", "172.25.106.102:8031", "Ip and Port to listen on")
 	//brokerAddr := flag.String("port", "8030", "Port to listen on")
 	//client, _ := rpc.Dial("tcp", *brokerAddr)
 

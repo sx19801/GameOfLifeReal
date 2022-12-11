@@ -46,7 +46,6 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 
 	flag.Parse()
 	fmt.Println("Server: ", Servers[0])
-	fmt.Println("Server: ", Servers[1])
 	//client, _ := rpc.Dial("tcp", server)
 
 	turn = 0

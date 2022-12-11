@@ -5,7 +5,6 @@ import (
 	"unsafe"
 
 	"GameOfLifeReal/util"
-
 	"github.com/veandco/go-sdl2/sdl"
 )
 

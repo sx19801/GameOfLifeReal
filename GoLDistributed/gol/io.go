@@ -67,7 +67,9 @@ func (io *ioState) writePgmImage() {
 	for y := 0; y < io.params.ImageHeight; y++ {
 		for x := 0; x < io.params.ImageWidth; x++ {
 			val := <-io.channels.output
-
+			//if val != 0 {
+			//	fmt.Println(x, y)
+			//}
 			world[y][x] = val
 		}
 	}

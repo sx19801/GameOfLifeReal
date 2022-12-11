@@ -18,9 +18,7 @@ func TestAlive(t *testing.T) {
 	p := gol.Params{
 		Turns: 100000000,
 		//SHOULD BE 8
-
-		//CHANGED CODE SO TEST PASS THREADS SHOULD BE 8 BUT ONLY ONE THREAD IMPLEMENTED ON THIS VERSION
-		Threads:     1,
+		Threads:     3,
 		ImageWidth:  512,
 		ImageHeight: 512,
 	}

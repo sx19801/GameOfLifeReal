@@ -119,12 +119,12 @@ func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.R
 	//SHOULD BE SEGMENTS NOT WORLD BUT PASS WORLD ALSO TO DO COMPUTATION
 	makePorts(req.P)
 	world := req.World
-	fmt.Println(world)
+	//fmt.Println(world)
 	//only calculate next state if the requested turns are greater than 0
 	//fmt.Println("the world", world)
 
 	newSegment := calculateNextState(req, world)
-	fmt.Println(newSegment)
+	//fmt.Println(newSegment)
 	//fmt.Println("the segment", newSegment)
 	res.NewSegment = newSegment
 	//fmt.Println(res.NewSegment)

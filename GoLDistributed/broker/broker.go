@@ -31,11 +31,11 @@ var ip string
 func callServer(world [][]byte, p stubs.Params) [][]byte {
 	Servers := make([]string, p.Threads)
 	for i := 0; i < p.Threads; i++ {
-		if i == 1 {
+		if i == 0 {
 			ip = "3.80.92.80:"
-		} else if i == 2 {
+		} else if i == 1 {
 			ip = "54.152.25.156:"
-		} else if i == 3 {
+		} else if i == 2 {
 			ip = "54.234.171.12:"
 		}
 		server := ip + strconv.Itoa(8031+i)

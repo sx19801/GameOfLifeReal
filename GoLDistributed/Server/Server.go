@@ -137,7 +137,7 @@ func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response
 }
 func main() {
 	// +strconv.Itoa(i)
-	pAddr := flag.String("port", "8050", "Port to listen on")
+	pAddr := flag.String("ip", "127.0.0.1:8050", "Ip and Port to listen on")
 	//brokerAddr := flag.String("port", "8030", "Port to listen on")
 	//client, _ := rpc.Dial("tcp", *brokerAddr)
 
@@ -145,7 +145,7 @@ func main() {
 	flag.Parse()
 	rand.Seed(time.Now().UnixNano())
 	rpc.Register(&GameOfLifeOperations{})
-	listener, _ := net.Listen("tcp", "127.0.0.1:"+*pAddr)
+	listener, _ := net.Listen("tcp", *pAddr)
 	fmt.Println(*pAddr)
 	defer listener.Close()
 	rpc.Accept(listener)

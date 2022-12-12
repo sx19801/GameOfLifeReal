@@ -137,9 +137,9 @@ func distributor(p Params, c distributorChannels, key <-chan rune) {
 			}
 		}
 	}()
-	//fmt.Println("before client call in distributor")
+	fmt.Println("before client call in distributor")
 	client.Call(stubs.BrokerHandler, request, response)
-	//fmt.Println("after client call in distributor")
+	fmt.Println("after client call in distributor")
 
 	// send request
 	//extract

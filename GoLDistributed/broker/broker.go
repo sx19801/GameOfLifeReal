@@ -34,7 +34,7 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 		if i == 0 {
 			ip = "54.90.170.226:"
 		} else if i == 1 {
-			ip = "54.152.25.156:"
+			ip = "54.83.181.254:"
 		} else if i == 2 {
 			ip = "54.234.171.12:"
 		}
@@ -44,8 +44,7 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 		Servers[i] = server
 	}
 
-	flag.Parse()
-	//fmt.Println("Server: ", Servers[0])
+	fmt.Println("Server: ", Servers[0])
 	//client, _ := rpc.Dial("tcp", server)
 
 	turn = 0
@@ -56,12 +55,17 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 	//response := new(stubs.Response)
 
 	clients := make([]*rpc.Client, p.Threads)
+
 	for i := 0; i < p.Threads; i++ {
-		clients[i], _ = rpc.Dial("tcp", Servers[i])
-
+		var e error
+		clients[i], (e) = rpc.Dial("tcp", Servers[i])
+		if e != nil {
+			fmt.Println(e)
+		}
+		fmt.Println("inside thread after clients")
 	}
-
-	for turn < p.Turns {
+	if p.Turns == 0 {
+		fmt.Println("in turn loop")
 		calls := make([]*rpc.Call, p.Threads)
 		responses := make([]*stubs.Response, p.Threads)
 		for i := 0; i < p.Threads; i++ {
@@ -71,14 +75,44 @@ func callServer(world [][]byte, p stubs.Params) [][]byte {
 		for i, client := range clients {
 			if i == p.Threads-1 {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
-				//fmt.Println("before client.go")
+				fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				//fmt.Println("after call")
+				fmt.Println("after call")
 			} else {
 				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: segmentHeight * (i + 1), P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
-				//fmt.Println("before client.go")
+				fmt.Println("before client.go")
 				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
-				//fmt.Println("after call")
+				fmt.Println("after call")
+			}
+		}
+		var newWorld [][]byte
+		for i, call := range calls {
+			<-call.Done
+			//fmt.Println("SEGMENT ", i, "  ", responses[i].NewSegment)
+			newWorld = append(newWorld, responses[i].NewSegment...)
+			//world = newWorld
+		}
+		return newWorld
+	}
+	for turn < p.Turns {
+		fmt.Println("in turn loop")
+		calls := make([]*rpc.Call, p.Threads)
+		responses := make([]*stubs.Response, p.Threads)
+		for i := 0; i < p.Threads; i++ {
+			responses[i] = new(stubs.Response)
+		}
+
+		for i, client := range clients {
+			if i == p.Threads-1 {
+				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: p.ImageHeight, P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+				fmt.Println("before client.go")
+				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
+				fmt.Println("after call")
+			} else {
+				request := stubs.Request{World: world, SegStart: segmentHeight * i, SegEnd: segmentHeight * (i + 1), P: stubs.Params{ImageHeight: p.ImageHeight, ImageWidth: p.ImageWidth, Threads: p.Threads, Turns: p.Turns}}
+				fmt.Println("before client.go")
+				calls[i] = client.Go(stubs.GolHandler, request, responses[i], nil)
+				fmt.Println("after call")
 			}
 		}
 		var newWorld [][]byte

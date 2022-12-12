@@ -34,7 +34,7 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 	sum := 0
 	//segment := req.Segment
 	//fmt.Println("yo")
-	//fmt.Println("End: ", req.SegEnd, " Start: ", req.SegStart)
+	fmt.Println("End: ", req.SegEnd, " Start: ", req.SegStart)
 	segment := make([][]byte, req.SegEnd-req.SegStart)
 	for i := 0; i < req.SegEnd-req.SegStart; i++ {
 		segment[i] = make([]byte, req.P.ImageWidth)
@@ -84,7 +84,7 @@ func calculateNextState(req stubs.Request, world [][]byte /*, c distributorChann
 			}
 		}
 	}
-	//fmt.Println("Length of Segment :", len(segment))
+	fmt.Println("Length of Segment :", len(segment))
 	return segment
 }
 
@@ -123,7 +123,7 @@ func (s *GameOfLifeOperations) ProcessGameOfLife(req stubs.Request, res *stubs.R
 	//fmt.Println(world)
 	//only calculate next state if the requested turns are greater than 0
 	//fmt.Println("the world", world)
-
+	fmt.Println("before calculate next state")
 	newSegment := calculateNextState(req, world)
 	//fmt.Println(newSegment)
 	//fmt.Println("the segment", newSegment)
@@ -138,7 +138,7 @@ func (s *GameOfLifeOperations) KillProcess(req stubs.Request, res stubs.Response
 }
 func main() {
 	// +strconv.Itoa(i)
-	pAddr := flag.String("ip", "54.86.55.240:8031", "Ip and Port to listen on")
+	pAddr := flag.String("ip", "", "Ip and Port to listen on")
 	//brokerAddr := flag.String("port", "8030", "Port to listen on")
 	//client, _ := rpc.Dial("tcp", *brokerAddr)
 
